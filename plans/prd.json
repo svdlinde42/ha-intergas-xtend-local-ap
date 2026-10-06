@@ -1,0 +1,442 @@
+[
+  {
+    "category": "scaffold",
+    "description": "Repository skeleton for the custom integration exists",
+    "steps": [
+      "Create custom_components/intergas_xtend/__init__.py with empty async_setup_entry and async_unload_entry",
+      "Create manifest.json with domain intergas_xtend, name 'Intergas Xtend', version 0.1.0, iot_class local_polling, config_flow true, empty requirements, codeowners, documentation and issue_tracker URLs",
+      "Create const.py with DOMAIN, DEFAULT_HOST = '10.20.30.1', DEFAULT_SCAN_INTERVAL = 10, MIN_SCAN_INTERVAL = 5, MAX_SCAN_INTERVAL = 60",
+      "Create hacs.json with name and minimum HA version",
+      "Create .gitignore for Python, .venv, .pytest_cache, .ruff_cache",
+      "Create requirements_dev.txt with homeassistant, pytest-homeassistant-custom-component, ruff",
+      "Create pyproject.toml with ruff and pytest config (asyncio_mode auto, testpaths tests)",
+      "Verify: python -c 'import json; json.load(open(\"custom_components/intergas_xtend/manifest.json\"))' succeeds"
+    ],
+    "passes": false
+  },
+  {
+    "category": "scaffold",
+    "description": "GitHub Actions validate the integration on push",
+    "steps": [
+      "Create .github/workflows/validate.yml",
+      "Add job running home-assistant/actions/hassfest",
+      "Add job running hacs/action with category integration",
+      "Add job running ruff check and pytest",
+      "Verify: workflow file parses and all three jobs are listed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "api",
+    "description": "Field list and endpoint path live in one place",
+    "steps": [
+      "In const.py add STATS_PATH = '/api/stats/values'",
+      "In const.py add STATS_FIELDS as a tuple of the 32 hex ids in this order: 7940,79b3,7921,7e2c,77c3,7e51,77d2,f9f2,7ed3,629c,6280,621d,62ed,503e,5088,5077,5041,50f2,62d1,620f,6206,8439,47e0,7e7a,7774,77de,6115,61ba,61eb,610b,6101,6117",
+      "Add a comment stating the source: docs/stats-mapping.md and a capture from the device on 2026-10-06",
+      "Verify: len(STATS_FIELDS) == 32 and no duplicates"
+    ],
+    "passes": false
+  },
+  {
+    "category": "api",
+    "description": "api.py fetches the status payload without importing Home Assistant",
+    "steps": [
+      "Create api.py with exceptions XtendError, XtendConnectionError(XtendError), XtendResponseError(XtendError)",
+      "Add class XtendApi(session: aiohttp.ClientSession, host: str) with method async_get_stats() -> dict[str, int | str]",
+      "Build the URL as http://{host}/api/stats/values?fields={','.join(STATS_FIELDS)}",
+      "Use a 5 second total timeout; on aiohttp.ClientError or asyncio.TimeoutError raise XtendConnectionError",
+      "On HTTP status other than 200 raise XtendResponseError with the status code",
+      "Verify: grep for 'homeassistant' in api.py returns nothing"
+    ],
+    "passes": false
+  },
+  {
+    "category": "api",
+    "description": "Parser accepts the real response shape and rejects anything else",
+    "steps": [
+      "Parse the body as JSON; on JSONDecodeError raise XtendResponseError",
+      "Require a top-level 'stats' key that is a dict; otherwise raise XtendResponseError",
+      "Return the inner dict unchanged: integer values stay int, string values (47e0) stay str",
+      "Do not apply scaling or sentinel handling in api.py; that belongs to the sensor layer",
+      "Verify: parsing the fixture returns a dict with 32 keys and stats['47e0'] == 'V1.20-'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Test fixture holds the captured device response verbatim",
+    "steps": [
+      "Create tests/__init__.py and tests/conftest.py enabling custom integrations (auto_enable_custom_integrations fixture)",
+      "Create tests/fixtures/stats_values.json with exactly: {\"stats\":{\"7940\":255,\"79b3\":2641,\"7921\":2000,\"7e2c\":255,\"7e51\":206,\"7ed3\":201,\"7e7a\":64,\"77c3\":208,\"77d2\":17102,\"7774\":255,\"77de\":255,\"f9f2\":265,\"629c\":1491,\"6280\":6740,\"621d\":3468,\"62ed\":8740,\"62d1\":2010,\"620f\":4771,\"6206\":32767,\"503e\":0,\"5088\":7917,\"5077\":7917,\"5041\":0,\"50f2\":7,\"8439\":0,\"47e0\":\"V1.20-\",\"6115\":32767,\"61ba\":80,\"61eb\":6500,\"610b\":4771,\"6101\":396,\"6117\":3}}",
+      "Create tests/fixtures/stats_values_standby.json with the second capture (summary page showed Standby, DHW 100 %): {\"stats\":{\"7940\":255,\"79b3\":2262,\"7921\":2000,\"7e2c\":255,\"7e51\":126,\"7ed3\":185,\"7e7a\":64,\"77c3\":0,\"77d2\":17102,\"7774\":255,\"77de\":255,\"f9f2\":8,\"629c\":1503,\"6280\":2175,\"621d\":3255,\"62ed\":2000,\"62d1\":1617,\"620f\":2315,\"6206\":32767,\"503e\":0,\"5088\":0,\"5077\":0,\"5041\":0,\"50f2\":7,\"8439\":0,\"47e0\":\"V1.20-\",\"6115\":10000,\"61ba\":80,\"61eb\":5000,\"610b\":2315,\"6101\":8013,\"6117\":0}}",
+      "Create tests/fixtures/stats_values_n095.json with the third capture (notification n095 on screen, heat pump running at 5000 W, DHW setpoint 65 °C): {\"stats\":{\"7940\":95,\"79b3\":2480,\"7921\":2000,\"7e2c\":255,\"7e51\":206,\"7ed3\":194,\"7e7a\":64,\"77c3\":194,\"77d2\":17134,\"7774\":255,\"77de\":255,\"f9f2\":136,\"629c\":1491,\"6280\":5283,\"621d\":2617,\"62ed\":5783,\"62d1\":1548,\"620f\":2472,\"6206\":32767,\"503e\":5000,\"5088\":0,\"5077\":5000,\"5041\":35,\"50f2\":1419,\"8439\":0,\"47e0\":\"V1.20-\",\"6115\":32767,\"61ba\":80,\"61eb\":6500,\"610b\":2472,\"6101\":7079,\"6117\":3}}",
+      "Add conftest fixtures 'stats_payload', 'stats_payload_standby' and 'stats_payload_n095' that load these files",
+      "Verify: pytest --collect-only runs without import errors"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "api.py is covered by unit tests against a mocked HTTP server",
+    "steps": [
+      "Create tests/test_api.py using aioresponses or aiohttp test_utils",
+      "Test: 200 with fixture body returns the 32-key dict",
+      "Test: connection refused raises XtendConnectionError",
+      "Test: timeout raises XtendConnectionError",
+      "Test: HTTP 500 raises XtendResponseError",
+      "Test: body 'not json' raises XtendResponseError",
+      "Test: body {\"other\": {}} raises XtendResponseError",
+      "Test: the requested URL contains fields= with all 32 ids in order",
+      "Verify: pytest tests/test_api.py passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "config_flow",
+    "description": "User can add the integration with host and poll interval",
+    "steps": [
+      "Create config_flow.py with ConfigFlow for DOMAIN, VERSION = 1",
+      "Step 'user' shows a form with host (default 10.20.30.1) and scan_interval (default 10, min 5, max 60)",
+      "On submit call XtendApi.async_get_stats once using async_get_clientsession(hass)",
+      "Map XtendConnectionError to error 'cannot_connect' and XtendResponseError to 'invalid_response'",
+      "Set unique_id to the host and abort with 'already_configured' if it exists",
+      "Create the entry with title 'Intergas Xtend ({host})' and data {host, scan_interval}",
+      "Verify: strings.json has config.step.user, config.error.cannot_connect, config.error.invalid_response, config.abort.already_configured"
+    ],
+    "passes": false
+  },
+  {
+    "category": "config_flow",
+    "description": "Poll interval can be changed afterwards via options",
+    "steps": [
+      "Add OptionsFlow with one field scan_interval (min 5, max 60), prefilled from options or data",
+      "In __init__.py register an update listener that reloads the entry when options change",
+      "Coordinator reads scan_interval from entry.options first, then entry.data",
+      "Verify: changing the option and saving triggers a reload and the new interval is in use"
+    ],
+    "passes": false
+  },
+  {
+    "category": "config_flow",
+    "description": "Translations exist in English and Dutch",
+    "steps": [
+      "Create strings.json with all config and options texts in English",
+      "Create translations/en.json as a copy of strings.json",
+      "Create translations/nl.json with Dutch texts",
+      "Verify: both translation files are valid JSON and have the same key structure as strings.json"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Config flow is covered by tests",
+    "steps": [
+      "Create tests/test_config_flow.py with XtendApi.async_get_stats patched",
+      "Test: happy path with defaults creates an entry with host 10.20.30.1 and scan_interval 10",
+      "Test: XtendConnectionError shows form with error cannot_connect",
+      "Test: XtendResponseError shows form with error invalid_response",
+      "Test: second flow for the same host aborts with already_configured",
+      "Test: options flow updates scan_interval",
+      "Verify: pytest tests/test_config_flow.py passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "coordinator",
+    "description": "One coordinator polls the device at the configured interval",
+    "steps": [
+      "Create coordinator.py with XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]])",
+      "update_interval = timedelta(seconds=scan_interval from options or data)",
+      "_async_update_data calls XtendApi.async_get_stats; wrap XtendError in UpdateFailed",
+      "In __init__.py create the coordinator, call async_config_entry_first_refresh, store it in entry.runtime_data",
+      "Forward setup to platform sensor only",
+      "Verify: after setup the coordinator has data with 32 keys and last_update_success is True"
+    ],
+    "passes": false
+  },
+  {
+    "category": "coordinator",
+    "description": "When the Xtend is unreachable the coordinator backs off instead of hammering",
+    "steps": [
+      "Count consecutive failures in the coordinator; reset to 0 on success",
+      "Add BACKOFF_START_FAILURES = 3, BACKOFF_FACTOR = 2, BACKOFF_MAX_SECONDS = 300 to const.py",
+      "From the 3rd consecutive failure on, set update_interval to min(scan_interval * 2 ** (failures - 2), 300) seconds",
+      "On the first success restore update_interval to the configured scan_interval",
+      "Log one warning when backoff starts and one info line when it ends; do not log every failed poll above debug",
+      "Verify: with scan_interval 10 the intervals after failures 1..7 are 10, 10, 20, 40, 80, 160, 300"
+    ],
+    "passes": false
+  },
+  {
+    "category": "coordinator",
+    "description": "Losing the access point is visible to the user with instructions",
+    "steps": [
+      "After 3 consecutive failures create a repairs issue 'ap_unreachable' (severity warning, not fixable)",
+      "Issue text: the Xtend at {host} is unreachable; the AP switches off after about 15 minutes without requests; re-enable the AP on the Xtend, reconnect the HA host Wi-Fi if needed, then press the 'Poll now' button",
+      "On the next success delete the repairs issue",
+      "Add the repairs issue texts to strings.json and both translation files (NL: 'Nu pollen' for the button name)",
+      "Verify: with 3 failed updates the issue exists; after one success it is gone"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "User can force a poll with a button; a successful poll resumes normal polling",
+    "steps": [
+      "Add platform button to the forwarded platforms in __init__.py",
+      "Create button.py with one XtendPollNowButton(CoordinatorEntity, ButtonEntity): translation_key poll_now, EN name 'Poll now', NL name 'Nu pollen', entity_category DIAGNOSTIC, icon mdi:refresh",
+      "The button must stay available when the coordinator has failed (override available to return True), otherwise it cannot be pressed when needed",
+      "async_press calls coordinator.async_request_refresh()",
+      "In the coordinator, a successful refresh (manual or scheduled) resets the failure counter and restores the configured scan_interval, so one successful manual poll ends the backoff",
+      "A failed manual poll keeps the current backoff interval and does not increase it",
+      "Verify: after 5 failures and interval 80 s, a successful press makes update_interval 10 s again and the repairs issue disappears"
+    ],
+    "passes": false
+  },
+  {
+    "category": "coordinator",
+    "description": "All entities belong to one device with firmware and link",
+    "steps": [
+      "Build DeviceInfo with identifiers {(DOMAIN, host)}, name 'Intergas Xtend', manufacturer 'Intergas'",
+      "Set sw_version from stats['47e0'] when it is a string",
+      "Set configuration_url to http://{host}",
+      "Verify: the device registry shows one device with sw_version V1.20- for the fixture"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Sensor definitions are one table in const.py driven by docs/stats-mapping.md",
+    "steps": [
+      "In const.py define a frozen dataclass XtendSensorDescription extending SensorEntityDescription with fields: factor (float | None), none_values (frozenset[int]), text_format (str | None)",
+      "Define SENSORS: tuple[XtendSensorDescription, ...] with one entry per field in STATS_FIELDS, key = hex id",
+      "Default none_values = frozenset({32767}) for every numeric field",
+      "Add a comment above SENSORS: 'Source: docs/stats-mapping.md. Do not change factors or units without updating that file.'",
+      "Verify: {d.key for d in SENSORS} == set(STATS_FIELDS)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "One generic sensor class converts raw values",
+    "steps": [
+      "Create sensor.py with async_setup_entry creating one XtendSensor per SENSORS entry",
+      "XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity) with has_entity_name True, unique_id f'{host}_{key}', translation_key = key-based name from the description",
+      "native_value: raw = coordinator.data.get(key); if raw is None or raw in none_values return None",
+      "If text_format is set return text_format % raw; elif factor is set return round(raw * factor, 2); else return raw",
+      "available = coordinator.last_update_success",
+      "Verify: no per-field subclasses exist in sensor.py"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Temperature sensors",
+    "steps": [
+      "Add SENSORS entries (key, translation_key, EN name, NL name): 79b3 room_temperature 'Room temperature' 'Kamertemperatuur'; 7921 room_target_temperature 'Room target temperature' 'Kamer doeltemperatuur'; 62d1 outside_temperature 'Outside temperature' 'Buitentemperatuur'; 6280 ch_return_temperature 'CH water return' 'Cv-water retour'; 621d ch_supply_temperature 'CH water supply' 'Cv-water aanvoer'; 62ed ch_setpoint 'CH water setpoint' 'Cv-water streefwaarde'; 620f aux1_temperature 'Aux 1 temperature' 'Aux 1 temperatuur'; 6206 aux2_temperature 'Aux 2 temperature' 'Aux 2 temperatuur'; 610b dhw_temperature 'DHW actual' 'Tapwater werkelijk'; 61eb dhw_setpoint 'DHW setpoint' 'Tapwater streefwaarde'",
+      "Each: factor 0.01, native_unit UnitOfTemperature.CELSIUS, device_class TEMPERATURE, state_class MEASUREMENT",
+      "Verify with stats_values: 79b3 -> 26.41, 7921 -> 20.0, 62d1 -> 20.1, 6206 -> None (32767)",
+      "Verify with stats_values_standby against the summary screenshot: 79b3 -> 22.62, 62d1 -> 16.17, 6280 -> 21.75, 621d -> 32.55, 62ed -> 20.0, 610b -> 23.15, 61eb -> 50.0"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Power and COP sensors",
+    "steps": [
+      "Add entries: 503e heat_pump_power 'Heat pump power' 'Vermogen warmtepomp'; 5088 boiler_power 'Boiler power' 'Vermogen cv-ketel'; 5077 total_thermal_power 'Total thermal power' 'Totaal thermisch vermogen'; 50f2 retrieved_power 'Retrieved power' 'Opgenomen vermogen'",
+      "Each power entry: factor 1, unit UnitOfPower.WATT, device_class POWER, state_class MEASUREMENT (the summary page shows W; raw value is already W, mapping factor 0.001 kW is the same quantity)",
+      "Add entry for 5041 cop 'COP' 'COP': factor 0.1, no unit, no device_class, state_class MEASUREMENT, icon mdi:heat-pump",
+      "Verify with stats_values: 5088 -> 7917, 50f2 -> 7, 5041 -> 0.0",
+      "Verify with stats_values_n095: 503e -> 5000, 5077 -> 5000, 50f2 -> 1419, 5041 -> 3.5",
+      "Verify with stats_values_standby against the screenshot: 503e -> 0, 5088 -> 0, 5077 -> 0, 50f2 -> 7, 5041 -> 0.0"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Flow and pressure sensors",
+    "steps": [
+      "Add entry for 629c ch_flow 'CH water flow' 'Cv-water debiet': factor 0.01, unit UnitOfVolumeFlowRate.LITERS_PER_MINUTE, device_class VOLUME_FLOW_RATE, state_class MEASUREMENT",
+      "Add entry for 7ed3 ch_pressure 'CH water pressure' 'Cv-water druk': factor 0.01, unit UnitOfPressure.BAR, device_class PRESSURE, state_class MEASUREMENT",
+      "Verify with stats_values: 629c -> 14.91, 7ed3 -> 2.01",
+      "Verify with stats_values_standby against the screenshot: 629c -> 15.03, 7ed3 -> 1.85"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Domestic hot water (Xtore) sensors",
+    "steps": [
+      "Add entry for 6115 dhw_available 'DHW available' 'Tapwater beschikbaar': factor 0.01, unit PERCENTAGE, state_class MEASUREMENT",
+      "Add entry for 61ba dhw_volume 'DHW volume' 'Tapwater inhoud': factor 1, unit UnitOfVolume.LITERS, device_class VOLUME_STORAGE, entity_category DIAGNOSTIC",
+      "Verify with stats_values: 6115 -> None (32767), 61ba -> 80",
+      "Verify with stats_values_standby against the screenshot: 6115 -> 100.0, 61ba -> 80"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Notification, lockout and fault code sensors",
+    "steps": [
+      "Add entry for 7940 notification_code 'Notification code' 'Notificatiecode': none_values {255}, text_format 'n%03d', entity_category DIAGNOSTIC",
+      "Add entry for 7e2c lockout_code 'Lockout code' 'Lockout-code': none_values {255}, text_format 'F%03d', entity_category DIAGNOSTIC",
+      "Add entry for 8439 boiler_fault_code 'Boiler fault code' 'Foutcode cv-ketel': none_values {0}, no factor, entity_category DIAGNOSTIC",
+      "Verify with stats_values: all three return None; with 7e2c = 37 the value is 'F037'",
+      "Verify with stats_values_n095 (real capture while the display showed n095, confirmed by the owner on 2026-10-06): 7940 -> 'n095', 7e2c -> None, 8439 -> None"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Code sensors carry the manual's description and cause/solution as attributes",
+    "steps": [
+      "Create codes.py in the integration with FAULT_CODES: dict[str, CodeInfo] and NOTIFICATION_CODES: dict[str, CodeInfo], where CodeInfo is a frozen dataclass (description: str, cause_solution: tuple[str, ...])",
+      "Fill both dicts from docs/fault-codes.json; keys are the code strings 'F001'..'F254' and 'n000'..'n097'. Keep the Dutch text exactly as in the file (it is quoted from the manual; attribute values cannot be translated by HA)",
+      "Handle the range entry n100-n165: a lookup helper notification_info(code) returns the FOTA entry for n100 up to and including n165",
+      "Add a comment above the dicts: 'Source: docs/fault-codes.json, generated from Intergas document 88104401 chapter 12.1 and 12.2. Regenerate, do not edit by hand.'",
+      "In XtendSensor add extra_state_attributes for keys 7940 and 7e2c: {'description': ..., 'cause_solution': [...]} looked up by the formatted value; when the value is None or the code is unknown return {'description': None, 'cause_solution': []}",
+      "Field 8439 gets no attributes: it holds the CV boiler's own OpenTherm fault code, which is not in this manual",
+      "scripts/gen_codes.py (added 2026-10-06) regenerates docs/fault-codes.json and docs/fault-codes.md from the PDF with pdfplumber (page index 84-87); run it again when a new manual version appears: python -I -X utf8 scripts/gen_codes.py <pdf> docs/fault-codes.md docs/fault-codes.json",
+      "Verify with stats_values_n095: the sensor state is 'n095', attribute description is 'Probleem met driewegklep.' and cause_solution has 4 items; with 7940 = 120 description is 'FOTA gerelateerde melding.'; with 7e2c = 254 description is 'Bypassmodus actief.'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Firmware version sensor",
+    "steps": [
+      "Add entry for 47e0 firmware_version 'Firmware version' 'Firmwareversie': no factor, none_values empty, entity_category DIAGNOSTIC, icon mdi:chip",
+      "native_value returns the string unchanged",
+      "Verify with fixture: value is 'V1.20-'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Raw bitfield and unknown fields are exposed as disabled diagnostics",
+    "steps": [
+      "Add entries: 7e51 heat_demand_status 'Heat demand status (raw)' 'Warmtevraagstatus (ruw)'; 7e7a burner_status 'Burner status (raw)' 'Branderstatus (ruw)'; 77c3 status_flags 'Status flags (raw)' 'Statusvlaggen (ruw)'; 77d2 system_io 'System I/O (raw)' 'Systeem-I/O (ruw)'; f9f2 bivalent_service_flags 'Bivalent service flags (raw)' 'Vlaggen hybride regeling (ruw)'; 6101 raw_6101 'Raw 6101' 'Ruw 6101'; 6117 raw_6117 'Raw 6117' 'Ruw 6117'; 7774 raw_7774 'Raw 7774' 'Ruw 7774'; 77de raw_77de 'Raw 77de' 'Ruw 77de'",
+      "Each: no factor, none_values empty, entity_category DIAGNOSTIC, entity_registry_enabled_default False",
+      "Verify with stats_values: 77d2 -> 17102, 7774 -> 255 (not None)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Entity names are translated",
+    "steps": [
+      "Add entity.sensor.<translation_key>.name for every SENSORS entry to strings.json and translations/en.json using the EN names listed in the entity items above",
+      "Add the NL names listed in the entity items above to translations/nl.json",
+      "Source of the names: the Xtend summary page ('Xtend summary' / 'Xtend overzicht'); fields not on that page use docs/stats-mapping.md",
+      "Verify: every translation_key in SENSORS has a name in all three files and the key sets are identical"
+    ],
+    "passes": false
+  },
+  {
+    "category": "research",
+    "description": "Derived states from the summary page are mapped to raw fields (not required for phase 1)",
+    "steps": [
+      "The summary page shows states that are not a single stats field: Operating mode (Standby), Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby)",
+      "Candidate sources: 7e51 heat demand status, 7e7a burner status, 77c3 status flags, 6117 (DHW group), f9f2 bivalent service flags",
+      "Collect at least 10 captures of the full stats payload together with the summary page states, covering: standby, CH heating by heat pump, CH heating by boiler, DHW run, silent mode on",
+      "Start the table with the three fixtures already in tests/fixtures: stats_values (7e51 206, 77c3 208, f9f2 265, 6117 3), stats_values_standby (page: Standby, heat demand off, DHW Standby; 7e51 126, 77c3 0, f9f2 8, 6117 0), stats_values_n095 (heat pump 5000 W, DHW setpoint 65 °C; 7e51 206, 77c3 194, f9f2 136, 6117 3)",
+      "Record each capture as a row in docs/derived-states.md: timestamp, page states, values of 7e51, 7e7a, 77c3, 6117, f9f2",
+      "Only when a bit or value maps one-to-one in every capture: add the mapping to docs/stats-mapping.md and create a prd item for a binary_sensor or enum sensor",
+      "Verify: docs/derived-states.md exists with at least 10 rows, or this item stays passes false"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Coordinator behaviour is covered by tests",
+    "steps": [
+      "Create tests/test_coordinator.py with a helper that sets up a config entry with XtendApi patched",
+      "Test: successful setup gives coordinator.data equal to the fixture",
+      "Test: an update raising XtendConnectionError marks a sensor as unavailable",
+      "Test: a following successful update makes the sensor available again",
+      "Test: 3 consecutive failures create the repairs issue, 1 success removes it",
+      "Test: backoff sequence with scan_interval 10 is 10, 10, 20, 40, 80, 160, 300 and stays at 300",
+      "Test: pressing button.intergas_xtend_poll_now during backoff triggers a refresh; on success update_interval is back to 10 and the failure counter is 0",
+      "Test: the poll now button is available while sensors are unavailable",
+      "Test: update_interval equals scan_interval from options when options are set",
+      "Verify: pytest tests/test_coordinator.py passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Sensor conversion is covered by tests",
+    "steps": [
+      "Create tests/test_sensor.py",
+      "Test: sensor.intergas_xtend_room_temperature state is '26.41' with unit °C",
+      "Test: with stats_payload_standby the states match the summary screenshot: room 22.62, outside 16.17, CH pressure 1.85, CH flow 15.03, retrieved power 7, DHW available 100.0",
+      "Test: sensor for 6206 has state 'unknown'",
+      "Test: with stats_payload sensor for 7940 has state 'unknown' and attributes description None, cause_solution []; with stats_payload_n095 state is 'n095', description 'Probleem met driewegklep.', cause_solution 4 items",
+      "Test: with payload 7940 = 120 the description is 'FOTA gerelateerde melding.' (range n100-n165); with 7940 = 99 (not in manual) state is 'n099' and description None",
+      "Test: with payload 7e2c = 254 state is 'F254' and description 'Bypassmodus actief.'",
+      "Test: codes.py covers every code in docs/fault-codes.json (19 fault codes, 57 single notification codes plus the n100-n165 range)",
+      "Test: sensor for 77d2 is diagnostic and disabled by default in the entity registry",
+      "Test: exactly 32 sensor entities and 1 button entity are registered",
+      "Verify: pytest tests/test_sensor.py passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tooling",
+    "description": "Lint, format and test suite are clean",
+    "steps": [
+      "Run ruff check . and fix every finding",
+      "Run ruff format . and commit the result",
+      "Run pytest and confirm every test passes",
+      "Verify: all three commands exit with code 0"
+    ],
+    "passes": false
+  },
+  {
+    "category": "docs",
+    "description": "Field mapping is stored in the repository",
+    "steps": [
+      "Create docs/stats-mapping.md with the mapping document exactly as provided by the owner",
+      "Reference docs/stats-mapping.md from AGENTS.md and from the comment above SENSORS in const.py",
+      "Verify: every id in STATS_FIELDS appears in docs/stats-mapping.md"
+    ],
+    "passes": true
+  },
+  {
+    "category": "docs",
+    "description": "Fault and notification codes from the manual are stored in the repository",
+    "steps": [
+      "docs/fault-codes.md and docs/fault-codes.json hold chapter 12.1 and 12.2 of Intergas document 88104401 (Xtend Eco installatievoorschrift), extracted 2026-10-06 with pdfplumber",
+      "Text is kept exactly as printed, including the manual's own spelling",
+      "Verify: fault-codes.json has 19 fault_codes and 58 notification_codes entries, the last one being the n100-n165 range"
+    ],
+    "passes": true
+  },
+  {
+    "category": "docs",
+    "description": "README explains installation and the access point behaviour",
+    "steps": [
+      "Add section Installation: add repository in HACS as integration, restart, add integration 'Intergas Xtend'",
+      "Add section Network: HA host must be joined to the Xtend Wi-Fi AP; default IP 10.20.30.1",
+      "Add section Access point timeout: the AP switches off after about 15 minutes without requests; polling keeps it alive; when unreachable the integration backs off to at most 5 minutes; how to recover: re-enable the AP, reconnect Wi-Fi on the HA host if needed, press 'Poll now'",
+      "Add section Entities: table of the 32 sensors with unit and whether they are enabled by default; explain that the notification and lockout code sensors carry description and cause_solution attributes in Dutch, taken from the manual (link docs/fault-codes.md)",
+      "Add note: the unique id is the host; changing the IP creates a new entry",
+      "Verify: README has these five sections"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Integration works against the real device",
+    "steps": [
+      "Copy custom_components/intergas_xtend into the config directory of a Home Assistant instance and restart",
+      "Add the integration with the default host 10.20.30.1",
+      "Verify: the device appears with sw_version and 32 sensors",
+      "Verify: room temperature, outdoor temperature and water pressure show plausible values that change over time",
+      "Switch the AP off or wait more than 15 minutes without polling; verify sensors become unavailable, the repairs issue appears and the log shows backoff starting",
+      "Switch the AP on again and reconnect the HA host Wi-Fi if needed; press 'Poll now'; verify values return without a restart, the issue disappears and polling is back at the configured interval"
+    ],
+    "passes": false
+  }
+]
