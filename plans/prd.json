@@ -407,17 +407,6 @@
     "passes": false
   },
   {
-    "category": "tooling",
-    "description": "Lint, format and test suite are clean after the operating mode change",
-    "steps": [
-      "Run ruff check . and fix every finding",
-      "Run ruff format . and commit the result",
-      "Run pytest and confirm every test passes",
-      "Verify: all three commands exit with code 0"
-    ],
-    "passes": false
-  },
-  {
     "category": "entities",
     "description": "Field 6117 becomes the DHW state enum sensor",
     "steps": [
@@ -433,7 +422,7 @@
     "category": "entities",
     "description": "Binary sensors for status bits",
     "steps": [
-      "Source: bit tables 77d2, 77c3 and f9f2 in docs/xtend-enums.json (confidence A: derived from app.js code order)",
+      "Source: bit tables 77d2, 77c3 and f9f2 in docs/xtend-enums.json. The statistics page source confirms 77c3 bit 3 (Silent mode), f9f2 bit 7 (Heat demand heat pump) and f9f2 bit 8 (Heat demand boiler); the 77d2 bits are derived from app.js code order (confidence A)",
       "Add binary_sensor.py with an XtendBinarySensorDescription (key, bit, translation_key) that reads coordinator.data only; bit is on when (raw >> bit) & 1; 32767 or a missing field gives None",
       "Entities: 77d2 bit 5 compressor_running (device_class RUNNING), 77d2 bit 1 ch_pump (RUNNING), 77d2 bit 0 dhw_pump (RUNNING), 77c3 bit 3 silent_mode, f9f2 bit 7 heat_demand_heat_pump (HEAT), f9f2 bit 8 heat_demand_boiler (HEAT), f9f2 bit 14 defrost_active",
       "Names en/nl: Compressor running / Compressor actief; CH pump / Cv-pomp; DHW pump / Tapwaterpomp; Silent mode / Stille modus; Heat demand heat pump / Warmtevraag warmtepomp; Heat demand boiler / Warmtevraag ketel; Defrost active / Ontdooien actief",
@@ -454,14 +443,88 @@
     "passes": false
   },
   {
-    "category": "research",
-    "description": "Fields 4133, 6578, 65d0 and 7fec are read once on the device",
+    "category": "api",
+    "description": "The poll also requests the statistics page totals and counters",
     "steps": [
-      "These fields have a table in docs/xtend-enums.json but are not polled yet",
-      "Run GET /api/stats/values?fields=4133,6578,65d0,7fec in standby and during a heat pump run; save the answers as tests/fixtures/stats_values_extra_<state>.json",
-      "Check: 4133 is 0 or 255 without a fault; 6578 is 1 while heating; 65d0 bit 0 is on while the compressor runs",
-      "Only when the values match: create prd items to add the fields to STATS_FIELDS with an enum sensor (4133, 6578, 7fec) or binary sensors (65d0)",
-      "Verify: the fixtures exist and the result is written in docs/stats-mapping.md"
+      "Source: docs/stats-mapping.md, sections 'Energie totaal' and 'Tellers' (statistics page source and capture, 2026-10-07)",
+      "Append these 23 ids to STATS_FIELDS in const.py, in this order: 63b3,63f0,63df,6358,6339,4a76,6a8e,6a8d,6ac5,6a6c,71a7,7160,6a53,4e13,4eeb,4e3a,4a22,4a3c,4aeb,8e00,8ef9,8e37,8e18. The tuple then holds 55 ids; there is still one URL and one request per poll",
+      "Update the comment above STATS_FIELDS: it no longer says 32",
+      "Do not add any field from the section 'Statistiekenpagina, niet gepold'",
+      "Tests: replace the hard-coded 32 in tests/test_api.py, test_coordinator.py, test_descriptions.py, test_scaffold.py and test_sensor.py with len(STATS_FIELDS) or the new count; EXPECTED_STATS_FIELDS in test_scaffold.py gets the 23 ids. In tests/test_fixtures.py the three 32-field captures are a subset of STATS_FIELDS, not equal to it",
+      "Verify: pytest tests/test_api.py tests/test_scaffold.py tests/test_fixtures.py passes and the request URL has 55 ids"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Energy total sensors from the statistics page",
+    "steps": [
+      "Depends on the item that adds the statistics fields to STATS_FIELDS",
+      "Add a helper energy(key, translation_key) in descriptions.py: factor 1, unit UnitOfEnergy.KILO_WATT_HOUR, device_class ENERGY, state_class TOTAL_INCREASING, enabled by default, no entity_category",
+      "Entries (key translation_key en / nl): 63b3 ch_heat_pump_energy_used 'CH heat pump energy used' / 'Cv warmtepomp energie verbruikt'; 63f0 ch_heat_pump_energy_generated 'CH heat pump energy generated' / 'Cv warmtepomp energie opgewekt'; 63df ch_boiler_energy_generated 'CH boiler energy generated' / 'Cv ketel energie opgewekt'; 6358 dhw_heat_pump_energy_used 'DHW heat pump energy used' / 'Tapwater warmtepomp energie verbruikt'; 6339 dhw_heat_pump_energy_generated 'DHW heat pump energy generated' / 'Tapwater warmtepomp energie opgewekt'; 4a76 dhw_boiler_energy_generated 'DHW boiler energy generated' / 'Tapwater ketel energie opgewekt'",
+      "Add the names to strings.json, translations/en.json and translations/nl.json. The en names follow the statistics page labels; the nl names are our own translation",
+      "Verify with tests/fixtures/stats_values_statistics.json: 63b3 3, 63f0 34, 63df 1, 6358 8, 6339 46, 4a76 76 (the Total column of the owner's screenshot)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Derived COP total sensors for CH and DHW",
+    "steps": [
+      "Source: the statistics page computes COP total = generated / used and shows it with 1 decimal (docs/stats-mapping.md, section 'Energie totaal')",
+      "These sensors have no stats field of their own. Add a separate tuple DERIVED_SENSORS in descriptions.py with a value_fn: Callable[[Mapping[str, int | str]], float | None]; keep SENSORS one entry per STATS_FIELDS id",
+      "cop_total_ch = 63f0 / 63b3; cop_total_dhw = 6339 / 6358; round to 1 decimal; None when used is 0, missing or 32767",
+      "state_class MEASUREMENT, no unit, enabled by default; unique_id {host}_cop_total_ch and {host}_cop_total_dhw",
+      "Names: 'COP total CH' / 'COP totaal cv'; 'COP total DHW' / 'COP totaal tapwater' in all three translation files",
+      "Verify with tests/fixtures/stats_values_statistics.json: cop_total_ch 11.3, cop_total_dhw 5.8; with 63b3 = 0: unknown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Counter sensors from the statistics page",
+    "steps": [
+      "Depends on the item that adds the statistics fields to STATS_FIELDS",
+      "Hours: factor 1, unit UnitOfTime.HOURS, device_class DURATION, state_class TOTAL_INCREASING. Entries: 6ac5 compressor_runtime_ch 'Compressor runtime CH' / 'Draaiuren compressor cv'; 6a6c compressor_runtime_dhw 'Compressor runtime DHW' / 'Draaiuren compressor tapwater'; 71a7 uptime 'Uptime' / 'Uptime'; 4e13 water_pump_hours 'Water pump hours' / 'Draaiuren waterpomp'; 4eeb crank_heater_hours 'Crank heater hours' / 'Uren carterverwarming'; 4e3a base_pan_heater_hours 'Base pan heater hours' / 'Uren bodemplaatverwarming'; 8ef9 boiler_runtime_ch 'Boiler runtime CH' / 'Branduren ketel cv'; 8e37 boiler_runtime_dhw 'Boiler runtime DHW' / 'Branduren ketel tapwater'",
+      "Counts: factor 1, no unit, no device_class, state_class TOTAL_INCREASING. Entries: 6a8e compressor_starts_ch 'Compressor starts CH' / 'Compressorstarts cv'; 6a8d compressor_starts_dhw 'Compressor starts DHW' / 'Compressorstarts tapwater'; 7160 power_cycles 'Power cycles' / 'Aantal keer ingeschakeld'; 6a53 defrost_cycles 'Defrost cycles' / 'Ontdooicycli'; 4a22 water_pump_starts 'Water pump starts' / 'Starts waterpomp'; 4a3c crank_heater_starts 'Crank heater starts' / 'Starts carterverwarming'; 4aeb base_pan_heater_starts 'Base pan heater starts' / 'Starts bodemplaatverwarming'; 8e00 boiler_starts 'Boiler starts' / 'Starts ketel'; 8e18 boiler_flame_loss 'Boiler flame loss' / 'Vlamverlies ketel'",
+      "All 17: entity_category DIAGNOSTIC, enabled by default",
+      "Add the names to strings.json, translations/en.json and translations/nl.json. The nl names are our own translation",
+      "Verify with tests/fixtures/stats_values_statistics.json: 6ac5 9, 6a6c 6, 71a7 100, 4e13 99, 4eeb 7, 4e3a 0, 8ef9 658, 8e37 85, 6a8e 9, 6a8d 6, 7160 13, 6a53 0, 4a22 8, 4a3c 58, 4aeb 0, 8e00 10277, 8e18 1"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Energy totals and counters are covered by tests",
+    "steps": [
+      "Use tests/fixtures/stats_values_statistics.json (the owner's capture of the statistics page request, 2026-10-07, 83 fields). Add a conftest fixture stats_payload_statistics",
+      "Test: each of the 23 new sensors gives its sample value from docs/stats-mapping.md",
+      "Test: CH total generated 63f0 + 63df = 35 and DHW total 6339 + 4a76 = 122, as on the screenshot",
+      "Test: cop_total_ch 11.3, cop_total_dhw 5.8; used 0 or 32767 gives unknown",
+      "Test: energy sensors have device_class energy, unit kWh, state_class total_increasing; hour counters duration/h; counts no unit",
+      "Test: every new translation_key has a name in strings.json, en.json and nl.json",
+      "Verify: pytest passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "docs",
+    "description": "README lists the energy totals and counters",
+    "steps": [
+      "Add the 6 energy totals, 2 COP totals and 17 counters to the Entities table in README.md",
+      "Add one sentence: the energy totals are whole kWh since commissioning and can be used in the Home Assistant Energy dashboard",
+      "Verify: every new translation_key's English name appears in README.md"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tooling",
+    "description": "Lint, format and test suite are clean after the operating mode and statistics changes",
+    "steps": [
+      "Run ruff check . and fix every finding",
+      "Run ruff format . and commit the result",
+      "Run pytest and confirm every test passes",
+      "Verify: all three commands exit with code 0"
     ],
     "passes": false
   },
@@ -473,20 +536,6 @@
       "app.js also shows POST /api/auth with body {code} that returns a role, and write blocks for the heating and cooling curves",
       "Ask the owner for the app.js file again and store the specs as docs/parameters.json with a source line; do not store the vendor file itself",
       "Verify: docs/parameters.json is valid JSON and every entry has code, type, min, max, default and role"
-    ],
-    "passes": false
-  },
-  {
-    "category": "research",
-    "description": "Derived states from the summary page are mapped to raw fields (not required for phase 1)",
-    "steps": [
-      "The summary page shows states that are not a single stats field: Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby). Solved: Operating mode is field 7e51 (docs/operating-modes.json); DHW State is field 6117 (confirmed by the owner 2026-10-07, docs/xtend-enums.json)",
-      "Candidates from app.js (docs/xtend-enums.json, confidence A): Silent mode = 77c3 bit 3 SilentModeActive; Heat demand heat pump = f9f2 bit 7 HeatpumpRequested; Heat demand boiler = f9f2 bit 8 BoilerRequested",
-      "Collect at least 10 captures of the full stats payload together with the summary page states, covering: standby, CH heating by heat pump, CH heating by boiler, DHW run, silent mode on",
-      "Start the table with the three fixtures already in tests/fixtures: stats_values (7e51 206, 77c3 208, f9f2 265, 6117 3), stats_values_standby (page: Standby, heat demand off, DHW Standby; 7e51 126, 77c3 0, f9f2 8, 6117 0), stats_values_n095 (heat pump 5000 W, DHW setpoint 65 °C; 7e51 206, 77c3 194, f9f2 136, 6117 3)",
-      "Record each capture as a row in docs/derived-states.md: timestamp, page states, values of 7e51, 7e7a, 77c3, 6117, f9f2",
-      "Only when a bit or value maps one-to-one in every capture: add the mapping to docs/stats-mapping.md and create a prd item for a binary_sensor or enum sensor",
-      "Verify: docs/derived-states.md exists with at least 10 rows, or this item stays passes false"
     ],
     "passes": false
   },

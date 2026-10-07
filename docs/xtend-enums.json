@@ -1,7 +1,7 @@
 {
-  "source": "Xtend web interface, bundled app.js, provided by the owner 2026-10-07. Names are copied unchanged. The link between a table and its field comes from code order (the table is declared right after the field).",
+  "source": "Xtend web interface, bundled app.js, provided by the owner 2026-10-07. Names are copied unchanged. The link between a table and its field comes from code order (the table is declared right after the field). The statistics page source (provided by the owner 2026-10-07) confirms several links: it reads the field with the table.",
   "confidence_legend": {
-    "E": "confirmed by observation or by the owner",
+    "E": "confirmed by observation, by the owner, or by the statistics page source (the page reads this field with this table)",
     "A": "derived from app.js code order, not yet confirmed on the device"
   },
   "bit_rule": "bit n is set when (value >> n) & 1 == 1",
@@ -45,7 +45,7 @@
     {
       "field": "77c3",
       "kind": "bits",
-      "confidence": "A",
+      "confidence": "E",
       "values": {
         "0": "LowLoadEnable",
         "1": "ControlSupplyTemperature",
@@ -55,12 +55,13 @@
         "5": "HeatpumpRegulateMaxPower",
         "6": "HeatWasAtMinimumFreq",
         "7": "CompressorWasOn"
-      }
+      },
+      "note": "Statistics page shows bit 3 SilentModeActive as 'Silent mode'"
     },
     {
       "field": "f9f2",
       "kind": "bits",
-      "confidence": "A",
+      "confidence": "E",
       "values": {
         "0": "HeatpumpNotAllowed",
         "1": "HPFailedBackupActive",
@@ -78,13 +79,14 @@
         "13": "LowLoadDetected",
         "14": "DefrostActive",
         "15": "BlockHpClockProgram"
-      }
+      },
+      "note": "Statistics page shows bit 7 HeatpumpRequested and bit 8 BoilerRequested as 'Heat demand', bit 9 BoilerActualState as 'Flame'"
     },
     {
       "field": "6578",
       "kind": "enum",
-      "confidence": "A",
-      "note": "Heat pump working mode; field not polled yet",
+      "confidence": "E",
+      "note": "Heat pump working mode; statistics page shows it as 'Operational mode'; not polled",
       "values": {
         "0": "HP_WM_COOLING",
         "1": "HP_WM_HEATING",
@@ -96,8 +98,8 @@
     {
       "field": "65d0",
       "kind": "bits",
-      "confidence": "A",
-      "note": "Heat pump outputs; field not polled yet",
+      "confidence": "E",
+      "note": "Heat pump outputs; statistics page shows bit 2 fourWayValve as '4-way valve position' (set = cooling); not polled",
       "values": {
         "0": "compressor",
         "1": "waterpump",
@@ -114,8 +116,8 @@
     {
       "field": "7fec",
       "kind": "enum",
-      "confidence": "A",
-      "note": "Bivalent: reason the heat pump is blocked; field not polled yet",
+      "confidence": "E",
+      "note": "Bivalent: reason the heat pump is blocked; statistics page shows it as 'Block reason' when not 0; not polled",
       "values": {
         "0": "BIVALENT_HEATPUMP_BLOCKED_REASON_NONE",
         "1": "BIVALENT_HEATPUMP_BLOCKED_REASON_NO_DEMAND",
