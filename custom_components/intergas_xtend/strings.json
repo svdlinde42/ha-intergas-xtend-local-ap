@@ -111,8 +111,48 @@
       "firmware_version": {
         "name": "Firmware version"
       },
-      "heat_demand_status": {
-        "name": "Heat demand status (raw)"
+      "operating_mode": {
+        "name": "Operating mode",
+        "state": {
+          "sensortest": "Sensor test",
+          "commissioning": "Commissioning",
+          "crankheating": "Crankcase heating",
+          "commissioning_waiting": "Commissioning, waiting",
+          "service": "Service",
+          "heatpump_selftest": "Heat pump self-test",
+          "dhw": "Domestic hot water",
+          "dhw_int": "Domestic hot water, internal",
+          "boiler_int": "Boiler, internal",
+          "boiler_ext": "Boiler, external",
+          "postrun_boiler": "Boiler post-run",
+          "ch": "Central heating",
+          "ch_wait": "Central heating, waiting",
+          "defrosting": "Defrosting",
+          "defrosting_wait": "Defrosting, waiting",
+          "defrosting_wait_flow": "Defrosting, waiting for flow",
+          "ch_blocked_by_sgready": "Heating blocked by SG Ready",
+          "ch_wait_dhw_active": "Heating waiting, DHW active",
+          "ch_concrete_drying": "Concrete floor drying",
+          "opentherm": "OpenTherm",
+          "heatup": "Heating up",
+          "frost": "Frost protection",
+          "starting_ch": "Starting heating",
+          "postrun_ch": "Heating post-run",
+          "standby": "Standby",
+          "switched_off": "Switched off",
+          "ch_rf": "Heating (RF)",
+          "dhw_hreco": "DHW heat recovery",
+          "dhw_legionella_prevention": "Legionella prevention",
+          "dhw_wait": "Domestic hot water, waiting",
+          "starting_cooling": "Starting cooling",
+          "cooling": "Cooling",
+          "cooling_wait": "Cooling, waiting",
+          "cooling_blocked_by_sgready": "Cooling blocked by SG Ready",
+          "cooling_waiting_for_flow": "Cooling, waiting for flow",
+          "cooling_condense_protection": "Cooling, condensation protection",
+          "cooling_floor_thermostat_off": "Cooling, floor thermostat off",
+          "postrun_cooling": "Cooling post-run"
+        }
       },
       "burner_status": {
         "name": "Burner status (raw)"

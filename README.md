@@ -79,7 +79,7 @@ unknown.
 | Lockout code | none | yes (diagnostic) |
 | Boiler fault code | none | yes (diagnostic) |
 | Firmware version | none | yes (diagnostic) |
-| Heat demand status (raw) | none | no (diagnostic) |
+| Operating mode | enum | yes |
 | Burner status (raw) | none | no (diagnostic) |
 | Status flags (raw) | none | no (diagnostic) |
 | System I/O (raw) | none | no (diagnostic) |

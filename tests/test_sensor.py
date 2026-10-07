@@ -6,6 +6,7 @@ tests set up a real config entry with XtendApi.async_get_stats patched.
 """
 
 import ast
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -36,6 +37,7 @@ from custom_components.intergas_xtend.descriptions import (
     SENSORS,
     XtendSensorDescription,
 )
+from custom_components.intergas_xtend.operating_modes import OPERATING_MODES
 from custom_components.intergas_xtend.sensor import XtendSensor
 
 from .test_coordinator import (
@@ -785,6 +787,9 @@ def test_only_code_sensors_have_attributes(stats_payload: dict[str, int | str]) 
         sensor = make_sensor(description, stats_payload)
         if description.key in ("7940", "7e2c"):
             assert sensor.extra_state_attributes is not None, description.key
+        elif description.key == "7e51":
+            # The operating mode enum carries its raw code instead.
+            assert sensor.extra_state_attributes == {"code": 206}
         else:
             assert sensor.extra_state_attributes is None, description.key
 
@@ -896,7 +901,6 @@ async def test_firmware_state_is_diagnostic_text(
 
 # Raw bitfield and unknown fields (entities item): key -> translation_key.
 RAW_SENSORS = {
-    "7e51": "heat_demand_status",
     "7e7a": "burner_status",
     "77c3": "status_flags",
     "77d2": "system_io",
@@ -936,7 +940,6 @@ def test_raw_descriptions() -> None:
         ("77d2", 17102),
         ("7774", 255),
         ("77de", 255),
-        ("7e51", 206),
         ("7e7a", 64),
         ("77c3", 208),
         ("f9f2", 265),
@@ -1064,3 +1067,90 @@ async def test_32_sensors_and_1_button_are_registered(
     assert domains.count(SENSOR_DOMAIN) == 32
     assert domains.count("button") == 1
     assert len(domains) == 33
+
+
+# Operating mode (field 7e51): an enum from docs/operating-modes.json.
+OPERATING_MODES_JSON = Path(__file__).resolve().parent.parent / (
+    "docs/operating-modes.json"
+)
+
+
+def test_operating_modes_match_the_docs() -> None:
+    modes = json.loads(OPERATING_MODES_JSON.read_text(encoding="utf-8"))
+    assert len(modes) == len(OPERATING_MODES) == 38
+    assert OPERATING_MODES == {m["code"]: m["name"] for m in modes}
+    description = {d.key: d for d in SENSORS}["7e51"]
+    assert description.options is not None
+    assert set(description.options) == set(OPERATING_MODES.values())
+    assert len(description.options) == 38
+
+
+def test_operating_mode_description() -> None:
+    description = {d.key: d for d in SENSORS}["7e51"]
+    assert description.translation_key == "operating_mode"
+    assert description.device_class == SensorDeviceClass.ENUM
+    assert description.value_map is OPERATING_MODES
+    assert description.entity_category is None
+    assert description.entity_registry_enabled_default is True
+    assert description.native_unit_of_measurement is None
+    assert description.state_class is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(126, "standby"), (206, "dhw_legionella_prevention"), (999, None), (32767, None)],
+)
+def test_operating_mode_value(raw: int, expected: str | None) -> None:
+    sensor = make_sensor({d.key: d for d in SENSORS}["7e51"], {"7e51": raw})
+    assert sensor.native_value == expected
+    # The raw code is always an attribute, also when the state is unknown.
+    assert sensor.extra_state_attributes == {"code": raw}
+
+
+def test_operating_mode_code_attribute_without_a_field() -> None:
+    sensor = make_sensor({d.key: d for d in SENSORS}["7e51"], {})
+    assert sensor.native_value is None
+    assert sensor.extra_state_attributes == {"code": None}
+
+
+async def test_operating_mode_standby(
+    hass: HomeAssistant, stats_payload_standby: dict[str, int | str]
+) -> None:
+    # Verify step: the standby capture has 7e51 = 126.
+    await setup_entry(hass, stats_payload_standby)
+    state = hass.states.get("sensor.intergas_xtend_operating_mode")
+    assert state is not None
+    assert state.state == "standby"
+    assert state.attributes["code"] == 126
+    assert state.attributes["device_class"] == SensorDeviceClass.ENUM
+    assert set(state.attributes["options"]) == set(OPERATING_MODES.values())
+    registry_entry = er.async_get(hass).async_get(state.entity_id)
+    assert registry_entry is not None
+    # unique_id is unchanged, so existing installs keep their history.
+    assert registry_entry.unique_id == f"{HOST}_7e51"
+    assert registry_entry.translation_key == "operating_mode"
+    assert registry_entry.entity_category is None
+    assert registry_entry.disabled_by is None
+
+
+@pytest.mark.parametrize("fixture", ["stats_payload", "stats_payload_n095"])
+async def test_operating_mode_legionella_prevention(
+    hass: HomeAssistant, fixture: str, request: pytest.FixtureRequest
+) -> None:
+    # Verify step: the first and n095 captures have 7e51 = 206.
+    await setup_entry(hass, request.getfixturevalue(fixture))
+    state = state_by_unique_id(hass, "7e51")
+    assert state.state == "dhw_legionella_prevention"
+    assert state.attributes["code"] == 206
+
+
+@pytest.mark.parametrize("raw", [999, 32767])
+async def test_operating_mode_unknown_code(
+    hass: HomeAssistant, stats_payload: dict[str, int | str], raw: int
+) -> None:
+    await setup_entry(hass, {**stats_payload, "7e51": raw})
+    state = state_by_unique_id(hass, "7e51")
+    assert state.state == STATE_UNKNOWN
+    assert state.attributes["code"] == raw
+    # The other sensors still update.
+    assert state_by_unique_id(hass, "79b3").state == "26.41"

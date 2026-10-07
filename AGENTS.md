@@ -74,6 +74,8 @@ custom_components/intergas_xtend/
   descriptions.py    # XtendSensorDescription and the SENSORS table (docs/stats-mapping.md)
   codes.py           # fault/notification code tables, generated from docs/fault-codes.json
                      # by scripts/gen_codes_py.py; do not edit by hand
+  operating_modes.py # 7e51 operating mode table, generated from
+                     # docs/operating-modes.json by scripts/gen_operating_modes_py.py
   sensor.py, button.py                 # phase 1 (button = "Poll now")
   number.py, select.py, switch.py      # phase 2
   manifest.json, strings.json, translations/

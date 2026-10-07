@@ -27,6 +27,7 @@ from homeassistant.const import (
 
 from .codes import CodeInfo, fault_info, notification_info
 from .const import FIRMWARE_FIELD, NO_CODE, NO_FAULT, NOT_AVAILABLE
+from .operating_modes import OPERATING_MODES
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -203,8 +204,16 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:chip",
     ),
+    # Operating mode: an enum of 38 codes (docs/operating-modes.json, via
+    # operating_modes.py). An unknown code or 32767 shows as unknown.
+    XtendSensorDescription(
+        key="7e51",
+        translation_key="operating_mode",
+        device_class=SensorDeviceClass.ENUM,
+        options=sorted(OPERATING_MODES.values()),
+        value_map=OPERATING_MODES,
+    ),
     # Bitvelden en ongeduide sleutels: raw diagnostics, disabled by default.
-    raw("7e51", "heat_demand_status"),
     raw("7e7a", "burner_status"),
     raw("77c3", "status_flags"),
     raw("77d2", "system_io"),

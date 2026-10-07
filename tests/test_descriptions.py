@@ -38,9 +38,7 @@ CODE_SENTINELS = {"7940": NO_CODE, "7e2c": NO_CODE, "8439": NO_FAULT}
 
 # Bitfields and unknown fields (docs/stats-mapping.md, "Bitvelden en
 # ongeduide sleutels") are shown raw: no sentinel hides a value.
-RAW_FIELDS = frozenset(
-    {"7e51", "7e7a", "77c3", "77d2", "f9f2", "6101", "6117", "7774", "77de"}
-)
+RAW_FIELDS = frozenset({"7e7a", "77c3", "77d2", "f9f2", "6101", "6117", "7774", "77de"})
 
 
 def test_numeric_fields_treat_32767_as_no_value() -> None:

@@ -82,15 +82,22 @@ class XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
-        """Add the manual's description and cause/solution for code sensors.
+        """Add the raw code for enum sensors, the manual's text for code sensors.
 
-        Only descriptions with a code_lookup (notification and lockout code)
-        have attributes. The text comes from codes.py and is Dutch, quoted
-        from the manual. Without a code, or for a code the manual does not
-        list, description is None and cause_solution is empty, so the
-        attributes keep the same keys at all times.
+        A description with a value_map has the attribute code: the raw
+        integer, also for a code the map does not know, so an unknown state
+        can still be traced; None when the field is missing or not an integer.
+        Descriptions with a code_lookup (notification and lockout code) have
+        description and cause_solution. The text comes from codes.py and is
+        Dutch, quoted from the manual. Without a code, or for a code the
+        manual does not list, description is None and cause_solution is
+        empty. Either way the attributes keep the same keys at all times.
         """
-        lookup = self.entity_description.code_lookup
+        description = self.entity_description
+        if description.value_map is not None:
+            raw = self.coordinator.data.get(description.key)
+            return {"code": raw if isinstance(raw, int) else None}
+        lookup = description.code_lookup
         if lookup is None:
             return None
         value = self.native_value

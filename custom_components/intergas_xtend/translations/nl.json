@@ -111,8 +111,48 @@
       "firmware_version": {
         "name": "Firmwareversie"
       },
-      "heat_demand_status": {
-        "name": "Warmtevraagstatus (ruw)"
+      "operating_mode": {
+        "name": "Bedrijfsmodus",
+        "state": {
+          "sensortest": "Sensortest",
+          "commissioning": "Inbedrijfstelling",
+          "crankheating": "Carterverwarming",
+          "commissioning_waiting": "Inbedrijfstelling, wachten",
+          "service": "Service",
+          "heatpump_selftest": "Zelftest warmtepomp",
+          "dhw": "Tapwater",
+          "dhw_int": "Tapwater, intern",
+          "boiler_int": "Cv-ketel, intern",
+          "boiler_ext": "Cv-ketel, extern",
+          "postrun_boiler": "Nalooptijd cv-ketel",
+          "ch": "Cv-verwarming",
+          "ch_wait": "Cv-verwarming, wachten",
+          "defrosting": "Ontdooien",
+          "defrosting_wait": "Ontdooien, wachten",
+          "defrosting_wait_flow": "Ontdooien, wachten op debiet",
+          "ch_blocked_by_sgready": "Verwarming geblokkeerd door SG Ready",
+          "ch_wait_dhw_active": "Verwarming wacht, tapwater actief",
+          "ch_concrete_drying": "Vloerdroging",
+          "opentherm": "OpenTherm",
+          "heatup": "Opwarmen",
+          "frost": "Vorstbeveiliging",
+          "starting_ch": "Verwarming starten",
+          "postrun_ch": "Nalooptijd verwarming",
+          "standby": "Stand-by",
+          "switched_off": "Uitgeschakeld",
+          "ch_rf": "Verwarming (RF)",
+          "dhw_hreco": "Tapwater warmteterugwinning",
+          "dhw_legionella_prevention": "Legionellapreventie",
+          "dhw_wait": "Tapwater, wachten",
+          "starting_cooling": "Koeling starten",
+          "cooling": "Koeling",
+          "cooling_wait": "Koeling, wachten",
+          "cooling_blocked_by_sgready": "Koeling geblokkeerd door SG Ready",
+          "cooling_waiting_for_flow": "Koeling, wachten op debiet",
+          "cooling_condense_protection": "Koeling, condensbeveiliging",
+          "cooling_floor_thermostat_off": "Koeling, vloerthermostaat uit",
+          "postrun_cooling": "Nalooptijd koeling"
+        }
       },
       "burner_status": {
         "name": "Branderstatus (ruw)"

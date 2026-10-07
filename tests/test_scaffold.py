@@ -192,8 +192,14 @@ def test_translations_match_strings_json() -> None:
     assert en == strings
     assert _key_paths(nl) == _key_paths(strings)
     # Dutch texts differ from English, except labels that are identical in
-    # both languages (the host field label and the COP sensor name).
-    same_in_both = {"config.step.user.data.host", "entity.sensor.cop.name"}
+    # both languages (the host field label, the COP sensor name and two
+    # operating mode states).
+    same_in_both = {
+        "config.step.user.data.host",
+        "entity.sensor.cop.name",
+        "entity.sensor.operating_mode.state.service",
+        "entity.sensor.operating_mode.state.opentherm",
+    }
     for path in _key_paths(strings) - same_in_both:
         en_leaf, nl_leaf = strings, nl
         for part in path.split("."):
@@ -236,6 +242,29 @@ def test_sensor_names_follow_the_prd() -> None:
     assert en["bivalent_service_flags"]["name"] == "Bivalent service flags (raw)"
     assert nl["bivalent_service_flags"]["name"] == "Vlaggen hybride regeling (ruw)"
     assert en["cop"]["name"] == nl["cop"]["name"] == "COP"
+
+
+def test_operating_mode_name_and_states_in_all_files() -> None:
+    # Verify step of the operating mode item: every option of the sensor has a
+    # state in all three files, with the label from docs/operating-modes.json.
+    from custom_components.intergas_xtend.descriptions import SENSORS
+
+    modes = json.loads(
+        (ROOT / "docs" / "operating-modes.json").read_text(encoding="utf-8")
+    )
+    options = set(next(d for d in SENSORS if d.key == "7e51").options or [])
+    files = {
+        "strings": (INTEGRATION / "strings.json", "en", "Operating mode"),
+        "en": (INTEGRATION / "translations" / "en.json", "en", "Operating mode"),
+        "nl": (INTEGRATION / "translations" / "nl.json", "nl", "Bedrijfsmodus"),
+    }
+    for label, (path, language, name) in files.items():
+        sensors = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
+        assert "heat_demand_status" not in sensors, label
+        entry = sensors["operating_mode"]
+        assert entry["name"] == name, label
+        assert set(entry["state"]) == options, label
+        assert entry["state"] == {m["name"]: m[language] for m in modes}, label
 
 
 def test_validate_workflow_has_three_jobs() -> None:

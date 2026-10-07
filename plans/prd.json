@@ -382,7 +382,7 @@
       "Verify with stats_values_standby: state 'standby', code 126. Verify with stats_values and stats_values_n095 (7e51 = 206): state 'dhw_legionella_prevention' (fits the capture: DHW setpoint 65 °C, heat pump at 5000 W). Verify raw 999: state 'unknown'",
       "Verify: every option of the sensor has a state in all three files, key sets are identical, no key heat_demand_status is left, and pytest passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
