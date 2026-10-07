@@ -80,12 +80,12 @@ unknown.
 | Boiler fault code | none | yes (diagnostic) |
 | Firmware version | none | yes (diagnostic) |
 | Operating mode | enum | yes |
+| DHW state | enum | yes |
 | Burner status (raw) | none | no (diagnostic) |
 | Status flags (raw) | none | no (diagnostic) |
 | System I/O (raw) | none | no (diagnostic) |
 | Bivalent service flags (raw) | none | no (diagnostic) |
 | Raw 6101 | none | no (diagnostic) |
-| Raw 6117 | none | no (diagnostic) |
 | Raw 7774 | none | no (diagnostic) |
 | Raw 77de | none | no (diagnostic) |
 

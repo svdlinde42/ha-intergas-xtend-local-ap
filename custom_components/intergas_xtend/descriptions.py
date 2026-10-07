@@ -101,6 +101,19 @@ def raw(key: str, translation_key: str) -> XtendSensorDescription:
     )
 
 
+# DHW state of field 6117 (code -> enum state). Source: table 6117 in
+# docs/xtend-enums.json (app.js, confirmed by the owner 2026-10-07); the names
+# are lowercased because Home Assistant enum states allow only [a-z0-9_].
+DHW_STATES: dict[int, str] = {
+    0: "dhw_idle",
+    1: "dhw_start",
+    3: "dhw_active",
+    7: "dhw_suspended",
+    8: "dhw_reclaim",
+    9: "dhw_postrun",
+}
+
+
 # Source: docs/stats-mapping.md. Do not change factors or units without
 # updating that file. One entry per id in STATS_FIELDS, grouped like the
 # sections of that document. The per-group entities items in plans/prd.json
@@ -213,13 +226,21 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
         options=sorted(OPERATING_MODES.values()),
         value_map=OPERATING_MODES,
     ),
+    # DHW state: an enum of 6 codes (DHW_STATES). An unknown code or 32767
+    # shows as unknown.
+    XtendSensorDescription(
+        key="6117",
+        translation_key="dhw_state",
+        device_class=SensorDeviceClass.ENUM,
+        options=sorted(DHW_STATES.values()),
+        value_map=DHW_STATES,
+    ),
     # Bitvelden en ongeduide sleutels: raw diagnostics, disabled by default.
     raw("7e7a", "burner_status"),
     raw("77c3", "status_flags"),
     raw("77d2", "system_io"),
     raw("f9f2", "bivalent_service_flags"),
     raw("6101", "raw_6101"),
-    raw("6117", "raw_6117"),
     raw("7774", "raw_7774"),
     raw("77de", "raw_77de"),
 )

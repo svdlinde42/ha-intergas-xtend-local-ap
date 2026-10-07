@@ -267,6 +267,47 @@ def test_operating_mode_name_and_states_in_all_files() -> None:
         assert entry["state"] == {m["name"]: m[language] for m in modes}, label
 
 
+def test_dhw_state_name_and_states_in_all_files() -> None:
+    # Verify step of the DHW state item: every option of the 6117 sensor has a
+    # state in all three files, and the key raw_6117 is gone.
+    from custom_components.intergas_xtend.descriptions import SENSORS
+
+    options = set(next(d for d in SENSORS if d.key == "6117").options or [])
+    assert len(options) == 6
+    en_states = {
+        "dhw_idle": "Idle",
+        "dhw_start": "Starting",
+        "dhw_active": "Active",
+        "dhw_suspended": "Suspended",
+        "dhw_reclaim": "Reclaim",
+        "dhw_postrun": "Post-run",
+    }
+    nl_states = {
+        "dhw_idle": "Rust",
+        "dhw_start": "Starten",
+        "dhw_active": "Actief",
+        "dhw_suspended": "Onderbroken",
+        "dhw_reclaim": "Terugwinnen",
+        "dhw_postrun": "Nalopen",
+    }
+    files = {
+        "strings": (INTEGRATION / "strings.json", "DHW state", en_states),
+        "en": (INTEGRATION / "translations" / "en.json", "DHW state", en_states),
+        "nl": (
+            INTEGRATION / "translations" / "nl.json",
+            "Tapwaterstatus",
+            nl_states,
+        ),
+    }
+    for label, (path, name, states) in files.items():
+        sensors = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
+        assert "raw_6117" not in sensors, label
+        entry = sensors["dhw_state"]
+        assert entry["name"] == name, label
+        assert set(entry["state"]) == options, label
+        assert entry["state"] == states, label
+
+
 def test_validate_workflow_has_three_jobs() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")

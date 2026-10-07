@@ -169,8 +169,16 @@
       "raw_6101": {
         "name": "Raw 6101"
       },
-      "raw_6117": {
-        "name": "Raw 6117"
+      "dhw_state": {
+        "name": "DHW state",
+        "state": {
+          "dhw_idle": "Idle",
+          "dhw_start": "Starting",
+          "dhw_active": "Active",
+          "dhw_suspended": "Suspended",
+          "dhw_reclaim": "Reclaim",
+          "dhw_postrun": "Post-run"
+        }
       },
       "raw_7774": {
         "name": "Raw 7774"

@@ -34,6 +34,7 @@ import pytest
 from custom_components.intergas_xtend.codes import fault_info, notification_info
 from custom_components.intergas_xtend.const import DOMAIN, STATS_FIELDS
 from custom_components.intergas_xtend.descriptions import (
+    DHW_STATES,
     SENSORS,
     XtendSensorDescription,
 )
@@ -788,8 +789,10 @@ def test_only_code_sensors_have_attributes(stats_payload: dict[str, int | str]) 
         if description.key in ("7940", "7e2c"):
             assert sensor.extra_state_attributes is not None, description.key
         elif description.key == "7e51":
-            # The operating mode enum carries its raw code instead.
+            # The enum sensors carry their raw code instead.
             assert sensor.extra_state_attributes == {"code": 206}
+        elif description.key == "6117":
+            assert sensor.extra_state_attributes == {"code": 3}
         else:
             assert sensor.extra_state_attributes is None, description.key
 
@@ -906,7 +909,6 @@ RAW_SENSORS = {
     "77d2": "system_io",
     "f9f2": "bivalent_service_flags",
     "6101": "raw_6101",
-    "6117": "raw_6117",
     "7774": "raw_7774",
     "77de": "raw_77de",
 }
@@ -944,7 +946,6 @@ def test_raw_descriptions() -> None:
         ("77c3", 208),
         ("f9f2", 265),
         ("6101", 396),
-        ("6117", 3),
     ],
 )
 def test_raw_values_from_first_capture(
@@ -1150,6 +1151,85 @@ async def test_operating_mode_unknown_code(
 ) -> None:
     await setup_entry(hass, {**stats_payload, "7e51": raw})
     state = state_by_unique_id(hass, "7e51")
+    assert state.state == STATE_UNKNOWN
+    assert state.attributes["code"] == raw
+    # The other sensors still update.
+    assert state_by_unique_id(hass, "79b3").state == "26.41"
+
+
+# DHW state (field 6117): an enum from table 6117 in docs/xtend-enums.json.
+XTEND_ENUMS_JSON = Path(__file__).resolve().parent.parent / "docs/xtend-enums.json"
+
+
+def test_dhw_states_match_the_docs() -> None:
+    tables = json.loads(XTEND_ENUMS_JSON.read_text(encoding="utf-8"))["tables"]
+    table = next(t for t in tables if t["field"] == "6117")
+    assert table["kind"] == "enum"
+    assert DHW_STATES == {int(k): v.lower() for k, v in table["values"].items()}
+    assert len(DHW_STATES) == 6
+    description = {d.key: d for d in SENSORS}["6117"]
+    assert description.options == sorted(DHW_STATES.values())
+
+
+def test_dhw_state_description() -> None:
+    description = {d.key: d for d in SENSORS}["6117"]
+    assert description.translation_key == "dhw_state"
+    assert description.device_class == SensorDeviceClass.ENUM
+    assert description.value_map is DHW_STATES
+    assert description.none_values == frozenset({32767})
+    assert description.entity_category is None
+    assert description.entity_registry_enabled_default is True
+    assert description.native_unit_of_measurement is None
+    assert description.state_class is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(0, "dhw_idle"), (3, "dhw_active"), (9, "dhw_postrun"), (2, None), (32767, None)],
+)
+def test_dhw_state_value(raw: int, expected: str | None) -> None:
+    sensor = make_sensor({d.key: d for d in SENSORS}["6117"], {"6117": raw})
+    assert sensor.native_value == expected
+    assert sensor.extra_state_attributes == {"code": raw}
+
+
+@pytest.mark.parametrize(
+    ("fixture", "expected", "code"),
+    [
+        # Verify step: standby capture 6117 = 0, n095 capture 6117 = 3.
+        ("stats_payload_standby", "dhw_idle", 0),
+        ("stats_payload_n095", "dhw_active", 3),
+    ],
+)
+async def test_dhw_state_from_captures(
+    hass: HomeAssistant,
+    request: pytest.FixtureRequest,
+    fixture: str,
+    expected: str,
+    code: int,
+) -> None:
+    await setup_entry(hass, request.getfixturevalue(fixture))
+    state = hass.states.get("sensor.intergas_xtend_dhw_state")
+    assert state is not None
+    assert state.state == expected
+    assert state.attributes["code"] == code
+    assert state.attributes["device_class"] == SensorDeviceClass.ENUM
+    assert state.attributes["options"] == sorted(DHW_STATES.values())
+    registry_entry = er.async_get(hass).async_get(state.entity_id)
+    assert registry_entry is not None
+    # unique_id is unchanged, so existing installs keep their history.
+    assert registry_entry.unique_id == f"{HOST}_6117"
+    assert registry_entry.translation_key == "dhw_state"
+    assert registry_entry.entity_category is None
+    assert registry_entry.disabled_by is None
+
+
+@pytest.mark.parametrize("raw", [2, 32767])
+async def test_dhw_state_unknown_code(
+    hass: HomeAssistant, stats_payload: dict[str, int | str], raw: int
+) -> None:
+    await setup_entry(hass, {**stats_payload, "6117": raw})
+    state = state_by_unique_id(hass, "6117")
     assert state.state == STATE_UNKNOWN
     assert state.attributes["code"] == raw
     # The other sensors still update.

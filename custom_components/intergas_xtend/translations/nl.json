@@ -169,8 +169,16 @@
       "raw_6101": {
         "name": "Ruw 6101"
       },
-      "raw_6117": {
-        "name": "Ruw 6117"
+      "dhw_state": {
+        "name": "Tapwaterstatus",
+        "state": {
+          "dhw_idle": "Rust",
+          "dhw_start": "Starten",
+          "dhw_active": "Actief",
+          "dhw_suspended": "Onderbroken",
+          "dhw_reclaim": "Terugwinnen",
+          "dhw_postrun": "Nalopen"
+        }
       },
       "raw_7774": {
         "name": "Ruw 7774"

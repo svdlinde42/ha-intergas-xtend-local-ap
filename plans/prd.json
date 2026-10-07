@@ -395,7 +395,7 @@
       "Tests: update tests/test_sensor.py and tests/test_descriptions.py (6117 leaves the raw/diagnostic set); add tests for the Verify values below and for the states in all three translation files",
       "Verify with stats_values_standby: state 'dhw_idle'; with stats_values_n095: state 'dhw_active'; raw 2 and 32767 give 'unknown'; pytest passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
