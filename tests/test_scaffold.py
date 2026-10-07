@@ -215,10 +215,15 @@ def test_translations_match_strings_json() -> None:
 def test_every_sensor_translation_key_has_a_name_in_all_files() -> None:
     # Verify step of the entity names item: every translation_key in SENSORS has
     # a name in strings.json, en.json and nl.json, and the key sets are identical.
-    from custom_components.intergas_xtend.descriptions import SENSORS
+    # The derived COP total sensors are included.
+    from custom_components.intergas_xtend.descriptions import (
+        DERIVED_SENSORS,
+        SENSORS,
+    )
 
-    keys = {d.translation_key for d in SENSORS}
-    assert len(keys) == len(SENSORS) == 55
+    descriptions = (*SENSORS, *DERIVED_SENSORS)
+    keys = {d.translation_key for d in descriptions}
+    assert len(keys) == len(descriptions) == 57
     files = {
         "strings": INTEGRATION / "strings.json",
         "en": INTEGRATION / "translations" / "en.json",

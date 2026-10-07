@@ -1,9 +1,9 @@
 """Sensor platform for the Intergas Xtend integration.
 
-One generic ``XtendSensor`` class serves every entry of the SENSORS table in
-descriptions.py. The table says how a raw stats value becomes a sensor value
-(sentinels, value map, scale factor, text format); this module only applies
-those rules.
+One generic ``XtendSensor`` class serves every entry of the SENSORS and
+DERIVED_SENSORS tables in descriptions.py. The table says how a raw stats
+value becomes a sensor value (sentinels, value map, scale factor, text format,
+value_fn); this module only applies those rules.
 There are no per-field subclasses: a new field is a new table row, not new code.
 """
 
@@ -17,7 +17,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import XtendConfigEntry, XtendCoordinator
-from .descriptions import SENSORS, XtendSensorDescription
+from .descriptions import DERIVED_SENSORS, SENSORS, XtendSensorDescription
 
 
 async def async_setup_entry(
@@ -25,9 +25,12 @@ async def async_setup_entry(
     entry: XtendConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Add one sensor per SENSORS entry for this device."""
+    """Add one sensor per SENSORS and DERIVED_SENSORS entry for this device."""
     coordinator = entry.runtime_data
-    async_add_entities(XtendSensor(coordinator, description) for description in SENSORS)
+    async_add_entities(
+        XtendSensor(coordinator, description)
+        for description in (*SENSORS, *DERIVED_SENSORS)
+    )
 
 
 class XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity):
@@ -60,9 +63,12 @@ class XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity):
         A raw value that is not a number cannot be mapped, formatted or
         scaled; it becomes None rather than an exception that would stop the
         update of the other sensors. A code missing from the value map is
-        None as well.
+        None as well. A derived sensor (value_fn) computes its value from
+        the whole payload instead.
         """
         description = self.entity_description
+        if description.value_fn is not None:
+            return description.value_fn(self.coordinator.data)
         raw = self.coordinator.data.get(description.key)
         if raw is None or raw in description.none_values:
             return None

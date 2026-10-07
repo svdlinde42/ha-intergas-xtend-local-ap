@@ -36,6 +36,7 @@ import pytest
 from custom_components.intergas_xtend.codes import fault_info, notification_info
 from custom_components.intergas_xtend.const import DOMAIN, STATS_FIELDS
 from custom_components.intergas_xtend.descriptions import (
+    DERIVED_SENSORS,
     DHW_STATES,
     SENSORS,
     XtendSensorDescription,
@@ -250,6 +251,7 @@ async def test_one_sensor_per_field_under_the_device(
             entity_registry, entry.entry_id
         )
         if registry_entry.domain == SENSOR_DOMAIN
+        and registry_entry.unique_id[len(HOST) + 1 :] in STATS_FIELDS
     ]
     assert len(sensors) == len(STATS_FIELDS) == 55
     assert {e.unique_id for e in sensors} == {f"{HOST}_{key}" for key in STATS_FIELDS}
@@ -1114,18 +1116,19 @@ async def test_n095_state_and_attributes(
     assert len(notification.attributes["cause_solution"]) == 4
 
 
-async def test_55_sensors_7_binary_sensors_and_1_button_are_registered(
+async def test_57_sensors_7_binary_sensors_and_1_button_are_registered(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:
+    # 55 stats fields plus the 2 derived COP total sensors.
     entry = await setup_entry(hass, stats_payload)
     domains = [
         e.domain
         for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     ]
-    assert domains.count(SENSOR_DOMAIN) == len(STATS_FIELDS) == 55
+    assert domains.count(SENSOR_DOMAIN) == len(STATS_FIELDS) + 2 == 57
     assert domains.count("binary_sensor") == 7
     assert domains.count("button") == 1
-    assert len(domains) == 63
+    assert len(domains) == 65
 
 
 # Operating mode (field 7e51): an enum from docs/operating-modes.json.
@@ -1505,3 +1508,102 @@ def test_statistics_names_in_all_translation_files() -> None:
         names = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
         for row in STATISTICS_SENSORS.values():
             assert names[row[0]]["name"] == row[column], (label, row[0])
+
+
+# Derived COP total sensors: generated / used, as the statistics page computes
+# them (docs/stats-mapping.md, section "Energie totaal").
+COP_TOTALS = {
+    # key: (generated field, used field, en name, nl name, expected)
+    "cop_total_ch": ("63f0", "63b3", "COP total CH", "COP totaal cv", 11.3),
+    "cop_total_dhw": ("6339", "6358", "COP total DHW", "COP totaal tapwater", 5.8),
+}
+
+
+def test_derived_sensor_descriptions() -> None:
+    assert [d.key for d in DERIVED_SENSORS] == list(COP_TOTALS)
+    for description in DERIVED_SENSORS:
+        assert description.translation_key == description.key
+        assert description.value_fn is not None
+        assert description.state_class == SensorStateClass.MEASUREMENT
+        assert description.native_unit_of_measurement is None
+        assert description.device_class is None
+        assert description.entity_category is None
+        assert description.entity_registry_enabled_default is True
+    # SENSORS keeps one entry per stats field; the derived keys are not in it.
+    assert not {d.key for d in DERIVED_SENSORS} & {d.key for d in SENSORS}
+
+
+@pytest.mark.parametrize("key", list(COP_TOTALS))
+def test_cop_total_values(
+    stats_payload_statistics: dict[str, int | str], key: str
+) -> None:
+    # Verify step: cop_total_ch 11.3 (34 / 3), cop_total_dhw 5.8 (46 / 8).
+    generated, used, _en, _nl, expected = COP_TOTALS[key]
+    description = {d.key: d for d in DERIVED_SENSORS}[key]
+    value = make_sensor(description, stats_payload_statistics).native_value
+    assert value == expected
+    assert isinstance(value, float)
+    for bad_used in (0, 32767, "x"):
+        payload = {**stats_payload_statistics, used: bad_used}
+        assert make_sensor(description, payload).native_value is None, bad_used
+    missing = {k: v for k, v in stats_payload_statistics.items() if k != used}
+    assert make_sensor(description, missing).native_value is None
+    payload = {**stats_payload_statistics, generated: 32767}
+    assert make_sensor(description, payload).native_value is None
+    # Nothing generated yet is a real COP of 0.0, not unknown.
+    payload = {**stats_payload_statistics, generated: 0}
+    assert make_sensor(description, payload).native_value == 0.0
+    # The derived sensor has no extra attributes.
+    assert (
+        make_sensor(description, stats_payload_statistics).extra_state_attributes
+        is None
+    )
+
+
+async def test_cop_total_states(
+    hass: HomeAssistant,
+    stats_payload_statistics: dict[str, int | str],
+    stats_payload: dict[str, int | str],
+) -> None:
+    entry = await setup_entry(hass, stats_payload_statistics)
+    device = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)[0]
+    entity_registry = er.async_get(hass)
+    for key, (_g, _u, en_name, _nl, expected) in COP_TOTALS.items():
+        state = state_by_unique_id(hass, key)
+        assert state.entity_id == f"sensor.intergas_xtend_{key}"
+        assert state.state == str(expected), key
+        assert state.attributes["state_class"] == "measurement"
+        assert state.attributes["friendly_name"] == f"Intergas Xtend {en_name}"
+        assert "unit_of_measurement" not in state.attributes
+        registry_entry = entity_registry.async_get(state.entity_id)
+        assert registry_entry is not None
+        assert registry_entry.unique_id == f"{HOST}_{key}"
+        assert registry_entry.device_id == device.id
+        assert registry_entry.disabled_by is None
+        assert registry_entry.entity_category is None
+
+    # Verify step: with 63b3 = 0 the CH total is unknown, DHW still has a value.
+    payload = {**stats_payload_statistics, "63b3": 0}
+    with patch(GET_STATS, return_value=payload):
+        await scheduled_poll(hass, entry.runtime_data)
+    assert state_by_unique_id(hass, "cop_total_ch").state == STATE_UNKNOWN
+    assert state_by_unique_id(hass, "cop_total_dhw").state == "5.8"
+
+    # The summary page captures have no energy totals.
+    with patch(GET_STATS, return_value=stats_payload):
+        await scheduled_poll(hass, entry.runtime_data)
+    for key in COP_TOTALS:
+        assert state_by_unique_id(hass, key).state == STATE_UNKNOWN
+
+
+def test_cop_total_names_in_all_translation_files() -> None:
+    integration = SENSOR_PY.parent
+    files = {
+        "strings": (integration / "strings.json", 2),
+        "en": (integration / "translations" / "en.json", 2),
+        "nl": (integration / "translations" / "nl.json", 3),
+    }
+    for label, (path, column) in files.items():
+        names = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
+        for key, row in COP_TOTALS.items():
+            assert names[key]["name"] == row[column], (label, key)

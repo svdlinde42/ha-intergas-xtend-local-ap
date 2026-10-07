@@ -47,6 +47,9 @@ class XtendSensorDescription(SensorEntityDescription):
     with device_class ENUM). It applies after none_values; a code that is not
     in the map gives None, so an unknown code shows as unknown and no name is
     invented.
+    value_fn computes the value from the whole stats payload, for a derived
+    sensor with no stats field of its own (DERIVED_SENSORS); key is then a
+    name, not a hex id, and the other conversion fields are not used.
     """
 
     factor: float | None = None
@@ -54,6 +57,7 @@ class XtendSensorDescription(SensorEntityDescription):
     text_format: str | None = None
     code_lookup: Callable[[str], CodeInfo | None] | None = None
     value_map: Mapping[int, str] | None = None
+    value_fn: Callable[[Mapping[str, int | str]], float | None] | None = None
 
 
 def temperature(key: str, translation_key: str) -> XtendSensorDescription:
@@ -321,4 +325,45 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     hours("8ef9", "boiler_runtime_ch"),
     hours("8e37", "boiler_runtime_dhw"),
     count("8e18", "boiler_flame_loss"),
+)
+
+
+def cop_total(
+    generated_key: str, used_key: str
+) -> Callable[[Mapping[str, int | str]], float | None]:
+    """Return a value_fn for COP total = generated / used, rounded to 1 decimal.
+
+    Source: docs/stats-mapping.md, section "Energie totaal": the statistics
+    page computes this itself; there is no stats field for it. A missing,
+    non-integer or 32767 total gives None, and so does used = 0.
+    """
+
+    def value(data: Mapping[str, int | str]) -> float | None:
+        generated = data.get(generated_key)
+        used = data.get(used_key)
+        if not isinstance(generated, int) or not isinstance(used, int):
+            return None
+        if NOT_AVAILABLE in (generated, used) or used == 0:
+            return None
+        return round(generated / used, 1)
+
+    return value
+
+
+def derived_cop(key: str, generated_key: str, used_key: str) -> XtendSensorDescription:
+    """Describe a COP total: a ratio, so no unit and no device class."""
+    return XtendSensorDescription(
+        key=key,
+        translation_key=key,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:heat-pump",
+        value_fn=cop_total(generated_key, used_key),
+    )
+
+
+# Sensors computed from other stats fields. They have no field of their own,
+# so they are kept out of SENSORS, which has one entry per STATS_FIELDS id.
+DERIVED_SENSORS: tuple[XtendSensorDescription, ...] = (
+    derived_cop("cop_total_ch", "63f0", "63b3"),
+    derived_cop("cop_total_dhw", "6339", "6358"),
 )

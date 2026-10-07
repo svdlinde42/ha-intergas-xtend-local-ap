@@ -465,7 +465,7 @@
       "Test: cop_total_ch 11.3, cop_total_dhw 5.8; used 0 or 32767 gives unknown; both names exist in all three translation files; update the entity count test in tests/test_sensor.py",
       "Verify with tests/fixtures/stats_values_statistics.json: cop_total_ch 11.3, cop_total_dhw 5.8; with 63b3 = 0: unknown; pytest passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "docs",

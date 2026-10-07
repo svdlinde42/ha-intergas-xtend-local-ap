@@ -277,6 +277,12 @@
       },
       "boiler_flame_loss": {
         "name": "Boiler flame loss"
+      },
+      "cop_total_ch": {
+        "name": "COP total CH"
+      },
+      "cop_total_dhw": {
+        "name": "COP total DHW"
       }
     }
   },

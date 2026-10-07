@@ -277,6 +277,12 @@
       },
       "boiler_flame_loss": {
         "name": "Vlamverlies ketel"
+      },
+      "cop_total_ch": {
+        "name": "COP totaal cv"
+      },
+      "cop_total_dhw": {
+        "name": "COP totaal tapwater"
       }
     }
   },
