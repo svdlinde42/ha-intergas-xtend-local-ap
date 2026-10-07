@@ -487,6 +487,35 @@ async def test_poll_now_button_stays_available_while_the_device_is_gone(
     assert state.state != STATE_UNAVAILABLE
 
 
+async def test_poll_now_button_has_the_documented_entity_id(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload)
+    assert poll_now_entity_id(hass) == "button.intergas_xtend_poll_now"
+
+
+async def test_sensor_is_unavailable_after_a_failed_poll_and_recovers(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    entry = await setup_entry(hass, stats_payload)
+    coordinator = entry.runtime_data
+    sensor_id = "sensor.intergas_xtend_room_temperature"
+    state = hass.states.get(sensor_id)
+    assert state is not None
+    assert state.state == "26.41"
+
+    await fail_scheduled_polls(hass, coordinator, 1)
+    state = hass.states.get(sensor_id)
+    assert state is not None
+    assert state.state == STATE_UNAVAILABLE
+
+    with patch(GET_STATS, return_value=stats_payload):
+        await scheduled_poll(hass, coordinator)
+    state = hass.states.get(sensor_id)
+    assert state is not None
+    assert state.state == "26.41"
+
+
 async def test_successful_press_ends_the_backoff_and_closes_the_issue(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:

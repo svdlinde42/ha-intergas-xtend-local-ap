@@ -362,7 +362,7 @@
       "Test: update_interval equals scan_interval from options when options are set",
       "Verify: pytest tests/test_coordinator.py passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "tests",
