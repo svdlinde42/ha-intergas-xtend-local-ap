@@ -112,6 +112,15 @@ def test_api_builds_stats_url_from_const() -> None:
     assert issubclass(XtendResponseError, XtendError)
 
 
+def test_strings_json_has_config_flow_texts() -> None:
+    # Verify step of the config_flow item.
+    strings = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))
+    config = strings["config"]
+    assert set(config["step"]["user"]["data"]) == {"host", "scan_interval"}
+    assert {"cannot_connect", "invalid_response"} <= set(config["error"])
+    assert "already_configured" in config["abort"]
+
+
 def test_validate_workflow_has_three_jobs() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")

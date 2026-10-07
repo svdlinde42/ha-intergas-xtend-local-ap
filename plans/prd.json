@@ -103,7 +103,7 @@
       "Create the entry with title 'Intergas Xtend ({host})' and data {host, scan_interval}",
       "Verify: strings.json has config.step.user, config.error.cannot_connect, config.error.invalid_response, config.abort.already_configured"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "config_flow",

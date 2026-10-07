@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the Intergas Xtend",
+        "description": "The Home Assistant host must be joined to the Wi-Fi access point of the Xtend. Polling also keeps that access point awake.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Poll interval (seconds)"
+        },
+        "data_description": {
+          "host": "IP address of the Xtend on its own access point, usually 10.20.30.1.",
+          "scan_interval": "How often the status is read, between 5 and 60 seconds."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to the Xtend. Check that the access point is on and that this host is joined to it.",
+      "invalid_response": "The device answered, but not with the expected status payload. Check the host."
+    },
+    "abort": {
+      "already_configured": "This Xtend is already configured."
+    }
+  }
+}
