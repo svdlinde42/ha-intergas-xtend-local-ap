@@ -37,11 +37,14 @@ async def test_user_flow_with_defaults_creates_entry(
         )
         await hass.async_block_till_done()
 
-    assert get_stats.call_count == 1
+    # One GET validates the host in the flow; the second is the coordinator's
+    # first refresh when Home Assistant sets up the new entry.
+    assert get_stats.call_count == 2
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Intergas Xtend (10.20.30.1)"
     assert result["data"] == {CONF_HOST: "10.20.30.1", CONF_SCAN_INTERVAL: 10}
     assert result["result"].unique_id == "10.20.30.1"
+    assert result["result"].state is ConfigEntryState.LOADED
 
 
 @pytest.mark.parametrize(
@@ -134,7 +137,7 @@ def test_scan_interval_from_entry_prefers_options() -> None:
 
 
 async def test_options_flow_updates_scan_interval_and_reloads(
-    hass: HomeAssistant,
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:
     # Verify step of the options item: saving a new interval reloads the entry
     # and the new interval is the one read from the entry afterwards.
@@ -144,8 +147,14 @@ async def test_options_flow_updates_scan_interval_and_reloads(
         data={CONF_HOST: "10.20.30.1", CONF_SCAN_INTERVAL: 10},
     )
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    # Setup does the first poll through the coordinator, so the device must
+    # answer here too.
+    with patch(
+        "custom_components.intergas_xtend.api.XtendApi.async_get_stats",
+        return_value=stats_payload,
+    ):
+        assert await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
     assert entry.state is ConfigEntryState.LOADED
 
     result = await hass.config_entries.options.async_init(entry.entry_id)

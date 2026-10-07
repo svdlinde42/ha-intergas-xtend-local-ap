@@ -152,7 +152,7 @@
       "Forward setup to platform sensor only",
       "Verify: after setup the coordinator has data with 32 keys and last_update_success is True"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "coordinator",
