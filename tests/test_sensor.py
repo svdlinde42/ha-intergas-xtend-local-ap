@@ -10,8 +10,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from homeassistant.components.sensor import DOMAIN as SENSOR_DOMAIN
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.components.sensor import (
+    DOMAIN as SENSOR_DOMAIN,
+    SensorDeviceClass,
+    SensorStateClass,
+)
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
@@ -187,14 +191,14 @@ async def test_states_follow_the_payload(
         assert state is not None
         return state.state
 
-    # No factors are set yet, so numeric states are the raw integers.
-    assert state_of("79b3") == "2641"
+    # Temperatures carry factor 0.01; 6115 has no factor yet (DHW item).
+    assert state_of("79b3") == "26.41"
     assert state_of("47e0") == "V1.20-"
     assert state_of("6206") == STATE_UNKNOWN
 
     with patch(GET_STATS, return_value=stats_payload_standby):
         await scheduled_poll(hass, entry.runtime_data)
-    assert state_of("79b3") == "2262"
+    assert state_of("79b3") == "22.62"
     assert state_of("6115") == "10000"
 
 
@@ -207,11 +211,87 @@ async def test_sensors_go_unavailable_on_failure_and_back_on_success(
         SENSOR_DOMAIN, DOMAIN, f"{HOST}_79b3"
     )
     assert entity_id is not None
-    assert hass.states.get(entity_id).state == "2641"
+    assert hass.states.get(entity_id).state == "26.41"
 
     await fail_scheduled_polls(hass, coordinator, 1)
     assert hass.states.get(entity_id).state == STATE_UNAVAILABLE
 
     with patch(GET_STATS, return_value=stats_payload):
         await scheduled_poll(hass, coordinator)
-    assert hass.states.get(entity_id).state == "2641"
+    assert hass.states.get(entity_id).state == "26.41"
+
+
+# Temperature sensors (entities item): key -> translation_key.
+TEMPERATURE_SENSORS = {
+    "79b3": "room_temperature",
+    "7921": "room_target_temperature",
+    "62d1": "outside_temperature",
+    "6280": "ch_return_temperature",
+    "621d": "ch_supply_temperature",
+    "62ed": "ch_setpoint",
+    "620f": "aux1_temperature",
+    "6206": "aux2_temperature",
+    "610b": "dhw_temperature",
+    "61eb": "dhw_setpoint",
+}
+
+
+def test_temperature_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+    for key, translation_key in TEMPERATURE_SENSORS.items():
+        description = by_key[key]
+        assert description.translation_key == translation_key, key
+        assert description.factor == 0.01, key
+        assert description.native_unit_of_measurement == UnitOfTemperature.CELSIUS
+        assert description.device_class == SensorDeviceClass.TEMPERATURE, key
+        assert description.state_class == SensorStateClass.MEASUREMENT, key
+        assert description.none_values == frozenset({32767}), key
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [("79b3", 26.41), ("7921", 20.0), ("62d1", 20.1), ("6206", None)],
+)
+def test_temperature_values_from_first_capture(
+    stats_payload: dict[str, int | str], key: str, expected: float | None
+) -> None:
+    # Verify step of the temperature item, first capture.
+    by_key = {d.key: d for d in SENSORS}
+    assert make_sensor(by_key[key], stats_payload).native_value == expected
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [
+        ("79b3", 22.62),
+        ("62d1", 16.17),
+        ("6280", 21.75),
+        ("621d", 32.55),
+        ("62ed", 20.0),
+        ("610b", 23.15),
+        ("61eb", 50.0),
+    ],
+)
+def test_temperature_values_match_the_standby_summary_page(
+    stats_payload_standby: dict[str, int | str], key: str, expected: float
+) -> None:
+    # Verify step of the temperature item: values as shown on the summary
+    # screenshot of the standby capture.
+    by_key = {d.key: d for d in SENSORS}
+    assert make_sensor(by_key[key], stats_payload_standby).native_value == expected
+
+
+async def test_temperature_state_has_unit_and_classes(
+    hass: HomeAssistant, stats_payload_standby: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_standby)
+    entity_id = er.async_get(hass).async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, f"{HOST}_62d1"
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "16.17"
+    assert state.attributes["unit_of_measurement"] == "°C"
+    assert state.attributes["device_class"] == "temperature"
+    assert state.attributes["state_class"] == "measurement"

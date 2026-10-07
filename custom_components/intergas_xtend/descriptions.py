@@ -9,7 +9,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from homeassistant.components.sensor import SensorEntityDescription
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.const import UnitOfTemperature
 
 from .const import FIRMWARE_FIELD, NOT_AVAILABLE
 
@@ -29,6 +34,18 @@ class XtendSensorDescription(SensorEntityDescription):
     text_format: str | None = None
 
 
+def temperature(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe a temperature field: raw value in 0.01 °C (docs/stats-mapping.md)."""
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        factor=0.01,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        device_class=SensorDeviceClass.TEMPERATURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    )
+
+
 # Source: docs/stats-mapping.md. Do not change factors or units without
 # updating that file. One entry per id in STATS_FIELDS, grouped like the
 # sections of that document. The per-group entities items in plans/prd.json
@@ -46,21 +63,21 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     XtendSensorDescription(key="5041"),
     # CV-water
     XtendSensorDescription(key="629c"),
-    XtendSensorDescription(key="6280"),
-    XtendSensorDescription(key="621d"),
-    XtendSensorDescription(key="62ed"),
+    temperature("6280", "ch_return_temperature"),
+    temperature("621d", "ch_supply_temperature"),
+    temperature("62ed", "ch_setpoint"),
     XtendSensorDescription(key="7ed3"),
     # Tapwater (Xtore)
-    XtendSensorDescription(key="610b"),
-    XtendSensorDescription(key="61eb"),
+    temperature("610b", "dhw_temperature"),
+    temperature("61eb", "dhw_setpoint"),
     XtendSensorDescription(key="6115"),
     XtendSensorDescription(key="61ba"),
-    XtendSensorDescription(key="620f"),
-    XtendSensorDescription(key="6206"),
+    temperature("620f", "aux1_temperature"),
+    temperature("6206", "aux2_temperature"),
     # Ruimte en buiten
-    XtendSensorDescription(key="79b3"),
-    XtendSensorDescription(key="7921"),
-    XtendSensorDescription(key="62d1"),
+    temperature("79b3", "room_temperature"),
+    temperature("7921", "room_target_temperature"),
+    temperature("62d1", "outside_temperature"),
     # Systeem: the firmware version is a string, so no numeric sentinel applies.
     XtendSensorDescription(key=FIRMWARE_FIELD, none_values=frozenset()),
     # Bitvelden en ongeduide sleutels

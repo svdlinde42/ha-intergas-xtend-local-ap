@@ -238,7 +238,7 @@
       "Verify with stats_values: 79b3 -> 26.41, 7921 -> 20.0, 62d1 -> 20.1, 6206 -> None (32767)",
       "Verify with stats_values_standby against the summary screenshot: 79b3 -> 22.62, 62d1 -> 16.17, 6280 -> 21.75, 621d -> 32.55, 62ed -> 20.0, 610b -> 23.15, 61eb -> 50.0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
