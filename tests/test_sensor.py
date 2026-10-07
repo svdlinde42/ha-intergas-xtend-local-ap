@@ -543,3 +543,99 @@ async def test_dhw_states_have_unit_and_category(
     assert volume.attributes["device_class"] == "volume_storage"
     assert "state_class" not in volume.attributes
     assert volume_entry.entity_category == EntityCategory.DIAGNOSTIC
+
+
+# Notification, lockout and fault code sensors (entities item).
+def test_code_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+
+    notification = by_key["7940"]
+    assert notification.translation_key == "notification_code"
+    assert notification.none_values == frozenset({255})
+    assert notification.text_format == "n%03d"
+    assert notification.factor is None
+    assert notification.entity_category == EntityCategory.DIAGNOSTIC
+
+    lockout = by_key["7e2c"]
+    assert lockout.translation_key == "lockout_code"
+    assert lockout.none_values == frozenset({255})
+    assert lockout.text_format == "F%03d"
+    assert lockout.factor is None
+    assert lockout.entity_category == EntityCategory.DIAGNOSTIC
+
+    fault = by_key["8439"]
+    assert fault.translation_key == "boiler_fault_code"
+    assert fault.none_values == frozenset({0})
+    assert fault.text_format is None
+    assert fault.factor is None
+    assert fault.entity_category == EntityCategory.DIAGNOSTIC
+
+    # Code sensors are text or plain numbers: no unit, device class or
+    # state class.
+    for description in (notification, lockout, fault):
+        assert description.native_unit_of_measurement is None, description.key
+        assert description.device_class is None, description.key
+        assert description.state_class is None, description.key
+
+
+def test_code_values_from_first_capture(stats_payload: dict[str, int | str]) -> None:
+    # Verify step: all three codes are "no code" in the first capture; a
+    # lockout 37 reads F037.
+    by_key = {d.key: d for d in SENSORS}
+    for key in ("7940", "7e2c", "8439"):
+        assert make_sensor(by_key[key], stats_payload).native_value is None, key
+
+    with_lockout = {**stats_payload, "7e2c": 37}
+    assert make_sensor(by_key["7e2c"], with_lockout).native_value == "F037"
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [("7940", "n095"), ("7e2c", None), ("8439", None)],
+)
+def test_code_values_from_the_n095_capture(
+    stats_payload_n095: dict[str, int | str], key: str, expected: str | None
+) -> None:
+    # Verify step: real capture while the display showed n095 (owner,
+    # 2026-10-06).
+    by_key = {d.key: d for d in SENSORS}
+    assert make_sensor(by_key[key], stats_payload_n095).native_value == expected
+
+
+def test_boiler_fault_code_keeps_the_raw_number() -> None:
+    # 8439 is the CV boiler's own OpenTherm code: 0 means no fault, any other
+    # value is shown as the number itself; 32767 is not a sentinel here.
+    description = {d.key: d for d in SENSORS}["8439"]
+    assert make_sensor(description, {"8439": 12}).native_value == 12
+    assert make_sensor(description, {"8439": 32767}).native_value == 32767
+
+
+async def test_code_states_are_diagnostic_text(
+    hass: HomeAssistant, stats_payload_n095: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_n095)
+    entity_registry = er.async_get(hass)
+
+    def entry_and_state(key: str):
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return entity_registry.async_get(entity_id), state
+
+    notification_entry, notification = entry_and_state("7940")
+    assert notification.state == "n095"
+    assert "unit_of_measurement" not in notification.attributes
+    assert "device_class" not in notification.attributes
+    assert "state_class" not in notification.attributes
+    assert notification_entry.entity_category == EntityCategory.DIAGNOSTIC
+
+    lockout_entry, lockout = entry_and_state("7e2c")
+    assert lockout.state == STATE_UNKNOWN
+    assert lockout_entry.entity_category == EntityCategory.DIAGNOSTIC
+
+    fault_entry, fault = entry_and_state("8439")
+    assert fault.state == STATE_UNKNOWN
+    assert fault_entry.entity_category == EntityCategory.DIAGNOSTIC

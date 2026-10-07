@@ -39,6 +39,11 @@ FIRMWARE_FIELD = "47e0"
 # Sentinel: a numeric stats field holds this value when the Xtend has no
 # value for it, e.g. a sensor that is not connected (docs/stats-mapping.md).
 NOT_AVAILABLE = 32767
+# Sentinels for the code fields (docs/stats-mapping.md): 255 means no
+# notification (7940) or no lockout (7e2c); 0 means no fault for the CV
+# boiler's own OpenTherm code (8439).
+NO_CODE = 255
+NO_FAULT = 0
 
 # REST status endpoint of the Xtend. Captured from the device on 2026-10-06
 # (firmware V1.20-), not guessed. Request:

@@ -285,7 +285,7 @@
       "Verify with stats_values: all three return None; with 7e2c = 37 the value is 'F037'",
       "Verify with stats_values_n095 (real capture while the display showed n095, confirmed by the owner on 2026-10-06): 7940 -> 'n095', 7e2c -> None, 8439 -> None"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

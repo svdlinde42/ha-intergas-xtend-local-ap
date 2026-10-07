@@ -24,7 +24,7 @@ from homeassistant.const import (
     UnitOfVolumeFlowRate,
 )
 
-from .const import FIRMWARE_FIELD, NOT_AVAILABLE
+from .const import FIRMWARE_FIELD, NO_CODE, NO_FAULT, NOT_AVAILABLE
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -75,10 +75,31 @@ def power(key: str, translation_key: str) -> XtendSensorDescription:
 # sections of that document. The per-group entities items in plans/prd.json
 # fill in translation keys, factors, units and classes.
 SENSORS: tuple[XtendSensorDescription, ...] = (
-    # Meldingen (notification, lockout and boiler fault codes)
-    XtendSensorDescription(key="7940"),
-    XtendSensorDescription(key="7e2c"),
-    XtendSensorDescription(key="8439"),
+    # Meldingen (notification, lockout and boiler fault codes). 255 means no
+    # notification or lockout; the codes are shown as the display shows them
+    # (n095, F037). docs/fault-codes.json holds their meaning.
+    XtendSensorDescription(
+        key="7940",
+        translation_key="notification_code",
+        none_values=frozenset({NO_CODE}),
+        text_format="n%03d",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    XtendSensorDescription(
+        key="7e2c",
+        translation_key="lockout_code",
+        none_values=frozenset({NO_CODE}),
+        text_format="F%03d",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    # 8439 is the CV boiler's own OpenTherm fault code: 0 means no fault and
+    # the raw number is shown, because the Xtend manual does not cover it.
+    XtendSensorDescription(
+        key="8439",
+        translation_key="boiler_fault_code",
+        none_values=frozenset({NO_FAULT}),
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     # Vermogen en COP
     power("503e", "heat_pump_power"),
     power("5088", "boiler_power"),
