@@ -334,11 +334,95 @@
     "passes": true
   },
   {
+    "category": "docs",
+    "description": "Operating mode codes (field 7e51) are stored in the repository",
+    "steps": [
+      "Create docs/operating-modes.json: a list of 38 objects {code, name, en, nl}. Source of code and name: the owner's mapping found 2026-10-07 (the list starts at SENSORTEST = 85; earlier entries were not provided). en and nl are our own translation: there is no source for them",
+      "Rows as code name | en | nl: 85 sensortest | Sensor test | Sensortest; 86 commissioning | Commissioning | Inbedrijfstelling; 87 crankheating | Crankcase heating | Carterverwarming; 88 commissioning_waiting | Commissioning, waiting | Inbedrijfstelling, wachten; 170 service | Service | Service; 171 heatpump_selftest | Heat pump self-test | Zelftest warmtepomp; 204 dhw | Domestic hot water | Tapwater; 51 dhw_int | Domestic hot water, internal | Tapwater, intern; 240 boiler_int | Boiler, internal | Cv-ketel, intern; 15 boiler_ext | Boiler, external | Cv-ketel, extern; 153 postrun_boiler | Boiler post-run | Nalooptijd cv-ketel",
+      "More rows: 102 ch | Central heating | Cv-verwarming; 103 ch_wait | Central heating, waiting | Cv-verwarming, wachten; 104 defrosting | Defrosting | Ontdooien; 105 defrosting_wait | Defrosting, waiting | Ontdooien, wachten; 106 defrosting_wait_flow | Defrosting, waiting for flow | Ontdooien, wachten op debiet; 107 ch_blocked_by_sgready | Heating blocked by SG Ready | Verwarming geblokkeerd door SG Ready; 108 ch_wait_dhw_active | Heating waiting, DHW active | Verwarming wacht, tapwater actief; 109 ch_concrete_drying | Concrete floor drying | Vloerdroging; 0 opentherm | OpenTherm | OpenTherm; 255 heatup | Heating up | Opwarmen; 24 frost | Frost protection | Vorstbeveiliging",
+      "More rows: 230 starting_ch | Starting heating | Verwarming starten; 231 postrun_ch | Heating post-run | Nalooptijd verwarming; 126 standby | Standby | Stand-by; 127 switched_off | Switched off | Uitgeschakeld; 37 ch_rf | Heating (RF) | Verwarming (RF); 205 dhw_hreco | DHW heat recovery | Tapwater warmteterugwinning; 206 dhw_legionella_prevention | Legionella prevention | Legionellapreventie; 207 dhw_wait | Domestic hot water, waiting | Tapwater, wachten",
+      "Last rows: 117 starting_cooling | Starting cooling | Koeling starten; 118 cooling | Cooling | Koeling; 119 cooling_wait | Cooling, waiting | Koeling, wachten; 120 cooling_blocked_by_sgready | Cooling blocked by SG Ready | Koeling geblokkeerd door SG Ready; 121 cooling_waiting_for_flow | Cooling, waiting for flow | Koeling, wachten op debiet; 122 cooling_condense_protection | Cooling, condensation protection | Koeling, condensbeveiliging; 123 cooling_floor_thermostat_off | Cooling, floor thermostat off | Koeling, vloerthermostaat uit; 189 postrun_cooling | Cooling post-run | Nalooptijd koeling",
+      "Names are lowercase because Home Assistant enum states allow only [a-z0-9_]. The owner's original names are the upper-case versions of these",
+      "In docs/stats-mapping.md change row 7e51 to: Bedrijfsmodus (opsomming), source E, and refer to docs/operating-modes.json. State that the en/nl labels are our own translation and that ch_rf and dhw_hreco are guesses from the abbreviation (RF, HRECO)",
+      "Verify: the JSON has 38 entries, unique codes, unique names; code 126 is standby and code 206 is dhw_legionella_prevention"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Enum support in the sensor description table",
+    "steps": [
+      "Add value_map: Mapping[int, str] | None = None to XtendSensorDescription in descriptions.py and document it in the class docstring",
+      "In XtendSensor.native_value: after the none_values check, if value_map is set return value_map.get(raw) (None when the code is unknown; do not invent a name)",
+      "Unknown codes must not raise and must not stop the update of other sensors",
+      "Verify: a test description with value_map {1: 'a'} gives 'a' for raw 1 and None for raw 2 and for 32767"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Field 7e51 becomes the Operating mode enum sensor",
+    "steps": [
+      "Add custom_components/intergas_xtend/operating_modes.py with OPERATING_MODES: dict[int, str] (code -> name). No Home Assistant imports. Comment: 'Source: docs/operating-modes.json. Regenerate, do not edit by hand.' Add scripts/gen_operating_modes_py.py in the style of scripts/gen_codes_py.py",
+      "In descriptions.py replace raw('7e51', 'heat_demand_status') with a description: key 7e51, translation_key operating_mode, device_class SensorDeviceClass.ENUM, options = sorted(OPERATING_MODES.values()), value_map = OPERATING_MODES, no entity_category, enabled by default",
+      "Add attribute code (the raw integer) to the state attributes of this sensor; keep the attribute keys the same at all times",
+      "unique_id stays {host}_7e51, so existing installs keep their history and entity_id",
+      "Verify with stats_values_standby: state 'standby', code 126. Verify with stats_values and stats_values_n095 (7e51 = 206): state 'dhw_legionella_prevention' (fits the capture: DHW setpoint 65 °C, heat pump at 5000 W). Verify raw 999: state 'unknown'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Operating mode name and states are translated in English and Dutch",
+    "steps": [
+      "In strings.json and translations/en.json rename entity.sensor.heat_demand_status to operating_mode with name 'Operating mode' and add a state map with the en label of every entry in docs/operating-modes.json",
+      "In translations/nl.json do the same with name 'Bedrijfsmodus' and the nl labels",
+      "Verify: every option of the sensor has a state in all three files, key sets are identical, and no key heat_demand_status is left"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tests",
+    "description": "Operating mode is covered by tests",
+    "steps": [
+      "Update tests/test_sensor.py (key map near line 830 and the raw-value check near line 870) and tests/test_descriptions.py (7e51 leaves the raw/diagnostic set near line 42)",
+      "Test: stats_payload_standby gives state 'standby' and attribute code 126",
+      "Test: stats_payload and stats_payload_n095 give state 'dhw_legionella_prevention'",
+      "Test: payload with 7e51 = 999 gives state 'unknown'; 7e51 = 32767 gives 'unknown'",
+      "Test: OPERATING_MODES matches docs/operating-modes.json (38 entries) and the sensor options equal the set of its values",
+      "Test: the sensor is enabled by default and has no entity_category",
+      "Test: name and all states exist in strings.json, en.json and nl.json",
+      "Verify: pytest passes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "docs",
+    "description": "README lists the Operating mode sensor",
+    "steps": [
+      "Replace the row 'Heat demand status (raw)' in the Entities table of README.md with 'Operating mode | enum | yes'",
+      "Add one sentence: the states are translated in English and Dutch; the translations are our own, the codes come from the owner's mapping (docs/operating-modes.json)",
+      "Verify: README has no 'Heat demand status' text left"
+    ],
+    "passes": false
+  },
+  {
+    "category": "tooling",
+    "description": "Lint, format and test suite are clean after the operating mode change",
+    "steps": [
+      "Run ruff check . and fix every finding",
+      "Run ruff format . and commit the result",
+      "Run pytest and confirm every test passes",
+      "Verify: all three commands exit with code 0"
+    ],
+    "passes": false
+  },
+  {
     "category": "research",
     "description": "Derived states from the summary page are mapped to raw fields (not required for phase 1)",
     "steps": [
-      "The summary page shows states that are not a single stats field: Operating mode (Standby), Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby)",
-      "Candidate sources: 7e51 heat demand status, 7e7a burner status, 77c3 status flags, 6117 (DHW group), f9f2 bivalent service flags",
+      "The summary page shows states that are not a single stats field: Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby). Operating mode is solved: it is field 7e51 (see docs/operating-modes.json)",
+      "Candidate sources: 7e7a burner status, 77c3 status flags, 6117 (DHW group), f9f2 bivalent service flags",
       "Collect at least 10 captures of the full stats payload together with the summary page states, covering: standby, CH heating by heat pump, CH heating by boiler, DHW run, silent mode on",
       "Start the table with the three fixtures already in tests/fixtures: stats_values (7e51 206, 77c3 208, f9f2 265, 6117 3), stats_values_standby (page: Standby, heat demand off, DHW Standby; 7e51 126, 77c3 0, f9f2 8, 6117 0), stats_values_n095 (heat pump 5000 W, DHW setpoint 65 °C; 7e51 206, 77c3 194, f9f2 136, 6117 3)",
       "Record each capture as a row in docs/derived-states.md: timestamp, page states, values of 7e51, 7e7a, 77c3, 6117, f9f2",
