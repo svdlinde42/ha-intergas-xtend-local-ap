@@ -15,6 +15,9 @@ from .conftest import FIXTURES_DIR
 
 
 def test_fixture_files_are_single_line_json_with_32_fields() -> None:
+    # The three captures of 2026-10-06 hold the 32 summary page fields; the 23
+    # statistics fields were added to STATS_FIELDS later, so each capture is a
+    # subset of STATS_FIELDS.
     for name in (
         "stats_values.json",
         "stats_values_standby.json",
@@ -24,7 +27,17 @@ def test_fixture_files_are_single_line_json_with_32_fields() -> None:
         assert body.count("\n") <= 1, name
         payload = json.loads(body)
         assert set(payload) == {"stats"}, name
-        assert set(payload["stats"]) == set(STATS_FIELDS), name
+        assert len(payload["stats"]) == 32, name
+        assert set(payload["stats"]) == set(STATS_FIELDS[:32]), name
+
+
+def test_statistics_capture_holds_every_statistics_field(
+    stats_payload_statistics: dict[str, int | str],
+) -> None:
+    assert len(stats_payload_statistics) == 83
+    assert set(STATS_FIELDS[32:]) <= set(stats_payload_statistics)
+    assert stats_payload_statistics["63f0"] == 34
+    assert stats_payload_statistics["8e00"] == 10277
 
 
 def test_stats_payload_is_first_capture(stats_payload: dict[str, int | str]) -> None:

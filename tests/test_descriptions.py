@@ -28,7 +28,7 @@ DESCRIPTIONS_PY = (
 def test_sensors_cover_stats_fields_exactly_once() -> None:
     # Verify step of the entities item.
     assert {d.key for d in SENSORS} == set(STATS_FIELDS)
-    assert len(SENSORS) == len(STATS_FIELDS) == 32
+    assert len(SENSORS) == len(STATS_FIELDS) == 55
     assert all(isinstance(d, XtendSensorDescription) for d in SENSORS)
 
 

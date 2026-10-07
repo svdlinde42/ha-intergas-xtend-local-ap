@@ -138,8 +138,9 @@ async def test_setup_polls_once_and_stores_the_payload(
     assert isinstance(coordinator, XtendCoordinator)
     assert coordinator.last_update_success is True
     assert coordinator.data == stats_payload
+    # The capture predates the statistics fields: 32 of the polled ids.
     assert len(coordinator.data) == 32
-    assert set(coordinator.data) == set(STATS_FIELDS)
+    assert set(coordinator.data) < set(STATS_FIELDS)
     assert coordinator.api.host == HOST
     assert coordinator.scan_interval == 10
     assert coordinator.update_interval == timedelta(seconds=10)

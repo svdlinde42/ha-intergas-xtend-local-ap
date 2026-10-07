@@ -43,11 +43,13 @@ ServerFactory = Callable[[Handler], Awaitable[TestServer]]
 
 def test_parse_fixture_returns_stats_unchanged() -> None:
     # Verify step of the parser item: 32 keys, firmware string stays a string.
+    # The capture predates the statistics fields, so it is a subset of
+    # STATS_FIELDS.
     body = (FIXTURES / "stats_values.json").read_text(encoding="utf-8")
     stats = XtendApi._parse_stats(body)
     assert isinstance(stats, dict)
     assert len(stats) == 32
-    assert set(stats) == set(STATS_FIELDS)
+    assert set(stats) < set(STATS_FIELDS)
     assert stats["47e0"] == "V1.20-"
     assert stats == json.loads(body)["stats"]
 
@@ -171,7 +173,8 @@ async def test_get_stats_sends_all_fields_in_order(
     assert request.path == STATS_PATH
     assert request.query["fields"] == ",".join(STATS_FIELDS)
     assert request.query["fields"].split(",") == list(STATS_FIELDS)
-    assert len(request.query["fields"].split(",")) == 32
+    # Verify step of the statistics item: one request with all 55 ids.
+    assert len(request.query["fields"].split(",")) == len(STATS_FIELDS) == 55
 
 
 async def test_connection_refused_raises_connection_error(

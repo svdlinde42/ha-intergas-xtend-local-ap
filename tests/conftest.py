@@ -44,3 +44,13 @@ def stats_payload_standby() -> dict[str, int | str]:
 def stats_payload_n095() -> dict[str, int | str]:
     """Third capture: display showed n095, heat pump at 5000 W, DHW setpoint 65 °C."""
     return _load_stats("stats_values_n095.json")
+
+
+@pytest.fixture
+def stats_payload_statistics() -> dict[str, int | str]:
+    """Owner's capture of the statistics page request (2026-10-07, 83 fields).
+
+    It holds the energy totals and counters, but not every summary page field
+    (for example 47e0 and 7e7a are missing).
+    """
+    return _load_stats("stats_values_statistics.json")

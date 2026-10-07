@@ -51,7 +51,7 @@ Field meanings, scale factors and units come from [docs/stats-mapping.md](docs/s
 There is one button, **Poll now** (diagnostic). It is always available, also when the Xtend is
 unreachable.
 
-There are 32 sensors. A value of 32767 from the device means "not available" and shows as
+There are 55 sensors. A value of 32767 from the device means "not available" and shows as
 unknown.
 
 | Sensor | Unit | Enabled by default |
@@ -88,6 +88,29 @@ unknown.
 | Volume 6101 (raw) | L | no (diagnostic) |
 | Raw 7774 | none | no (diagnostic) |
 | Raw 77de | none | no (diagnostic) |
+| CH heat pump energy used | kWh | yes |
+| CH heat pump energy generated | kWh | yes |
+| CH boiler energy generated | kWh | yes |
+| DHW heat pump energy used | kWh | yes |
+| DHW heat pump energy generated | kWh | yes |
+| DHW boiler energy generated | kWh | yes |
+| Compressor starts CH | none | yes (diagnostic) |
+| Compressor starts DHW | none | yes (diagnostic) |
+| Compressor runtime CH | h | yes (diagnostic) |
+| Compressor runtime DHW | h | yes (diagnostic) |
+| Uptime | h | yes (diagnostic) |
+| Power cycles | none | yes (diagnostic) |
+| Defrost cycles | none | yes (diagnostic) |
+| Water pump hours | h | yes (diagnostic) |
+| Crank heater hours | h | yes (diagnostic) |
+| Base pan heater hours | h | yes (diagnostic) |
+| Water pump starts | none | yes (diagnostic) |
+| Crank heater starts | none | yes (diagnostic) |
+| Base pan heater starts | none | yes (diagnostic) |
+| Boiler starts | none | yes (diagnostic) |
+| Boiler runtime CH | h | yes (diagnostic) |
+| Boiler runtime DHW | h | yes (diagnostic) |
+| Boiler flame loss | none | yes (diagnostic) |
 
 The raw sensors show the number from the device without any meaning. Their meaning is not known
 yet. You can enable them in the entity registry.

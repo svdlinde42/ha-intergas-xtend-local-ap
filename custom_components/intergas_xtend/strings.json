@@ -208,6 +208,75 @@
       },
       "raw_77de": {
         "name": "Raw 77de"
+      },
+      "ch_heat_pump_energy_used": {
+        "name": "CH heat pump energy used"
+      },
+      "ch_heat_pump_energy_generated": {
+        "name": "CH heat pump energy generated"
+      },
+      "ch_boiler_energy_generated": {
+        "name": "CH boiler energy generated"
+      },
+      "dhw_heat_pump_energy_used": {
+        "name": "DHW heat pump energy used"
+      },
+      "dhw_heat_pump_energy_generated": {
+        "name": "DHW heat pump energy generated"
+      },
+      "dhw_boiler_energy_generated": {
+        "name": "DHW boiler energy generated"
+      },
+      "compressor_starts_ch": {
+        "name": "Compressor starts CH"
+      },
+      "compressor_starts_dhw": {
+        "name": "Compressor starts DHW"
+      },
+      "compressor_runtime_ch": {
+        "name": "Compressor runtime CH"
+      },
+      "compressor_runtime_dhw": {
+        "name": "Compressor runtime DHW"
+      },
+      "uptime": {
+        "name": "Uptime"
+      },
+      "power_cycles": {
+        "name": "Power cycles"
+      },
+      "defrost_cycles": {
+        "name": "Defrost cycles"
+      },
+      "water_pump_hours": {
+        "name": "Water pump hours"
+      },
+      "crank_heater_hours": {
+        "name": "Crank heater hours"
+      },
+      "base_pan_heater_hours": {
+        "name": "Base pan heater hours"
+      },
+      "water_pump_starts": {
+        "name": "Water pump starts"
+      },
+      "crank_heater_starts": {
+        "name": "Crank heater starts"
+      },
+      "base_pan_heater_starts": {
+        "name": "Base pan heater starts"
+      },
+      "boiler_starts": {
+        "name": "Boiler starts"
+      },
+      "boiler_runtime_ch": {
+        "name": "Boiler runtime CH"
+      },
+      "boiler_runtime_dhw": {
+        "name": "Boiler runtime DHW"
+      },
+      "boiler_flame_loss": {
+        "name": "Boiler flame loss"
       }
     }
   },

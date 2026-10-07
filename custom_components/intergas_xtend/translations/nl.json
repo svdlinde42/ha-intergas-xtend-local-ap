@@ -208,6 +208,75 @@
       },
       "raw_77de": {
         "name": "Ruw 77de"
+      },
+      "ch_heat_pump_energy_used": {
+        "name": "Cv warmtepomp energie verbruikt"
+      },
+      "ch_heat_pump_energy_generated": {
+        "name": "Cv warmtepomp energie opgewekt"
+      },
+      "ch_boiler_energy_generated": {
+        "name": "Cv ketel energie opgewekt"
+      },
+      "dhw_heat_pump_energy_used": {
+        "name": "Tapwater warmtepomp energie verbruikt"
+      },
+      "dhw_heat_pump_energy_generated": {
+        "name": "Tapwater warmtepomp energie opgewekt"
+      },
+      "dhw_boiler_energy_generated": {
+        "name": "Tapwater ketel energie opgewekt"
+      },
+      "compressor_starts_ch": {
+        "name": "Compressorstarts cv"
+      },
+      "compressor_starts_dhw": {
+        "name": "Compressorstarts tapwater"
+      },
+      "compressor_runtime_ch": {
+        "name": "Draaiuren compressor cv"
+      },
+      "compressor_runtime_dhw": {
+        "name": "Draaiuren compressor tapwater"
+      },
+      "uptime": {
+        "name": "Uptime"
+      },
+      "power_cycles": {
+        "name": "Aantal keer ingeschakeld"
+      },
+      "defrost_cycles": {
+        "name": "Ontdooicycli"
+      },
+      "water_pump_hours": {
+        "name": "Draaiuren waterpomp"
+      },
+      "crank_heater_hours": {
+        "name": "Uren carterverwarming"
+      },
+      "base_pan_heater_hours": {
+        "name": "Uren bodemplaatverwarming"
+      },
+      "water_pump_starts": {
+        "name": "Starts waterpomp"
+      },
+      "crank_heater_starts": {
+        "name": "Starts carterverwarming"
+      },
+      "base_pan_heater_starts": {
+        "name": "Starts bodemplaatverwarming"
+      },
+      "boiler_starts": {
+        "name": "Starts ketel"
+      },
+      "boiler_runtime_ch": {
+        "name": "Branduren ketel cv"
+      },
+      "boiler_runtime_dhw": {
+        "name": "Branduren ketel tapwater"
+      },
+      "boiler_flame_loss": {
+        "name": "Vlamverlies ketel"
       }
     }
   },

@@ -21,9 +21,11 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     EntityCategory,
+    UnitOfEnergy,
     UnitOfPower,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfTime,
     UnitOfVolume,
     UnitOfVolumeFlowRate,
 )
@@ -249,7 +251,7 @@ async def test_one_sensor_per_field_under_the_device(
         )
         if registry_entry.domain == SENSOR_DOMAIN
     ]
-    assert len(sensors) == 32
+    assert len(sensors) == len(STATS_FIELDS) == 55
     assert {e.unique_id for e in sensors} == {f"{HOST}_{key}" for key in STATS_FIELDS}
     assert all(e.device_id == device.id for e in sensors)
     assert {e.translation_key for e in sensors} == {
@@ -1112,7 +1114,7 @@ async def test_n095_state_and_attributes(
     assert len(notification.attributes["cause_solution"]) == 4
 
 
-async def test_32_sensors_7_binary_sensors_and_1_button_are_registered(
+async def test_55_sensors_7_binary_sensors_and_1_button_are_registered(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:
     entry = await setup_entry(hass, stats_payload)
@@ -1120,10 +1122,10 @@ async def test_32_sensors_7_binary_sensors_and_1_button_are_registered(
         e.domain
         for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     ]
-    assert domains.count(SENSOR_DOMAIN) == 32
+    assert domains.count(SENSOR_DOMAIN) == len(STATS_FIELDS) == 55
     assert domains.count("binary_sensor") == 7
     assert domains.count("button") == 1
-    assert len(domains) == 40
+    assert len(domains) == 63
 
 
 # Operating mode (field 7e51): an enum from docs/operating-modes.json.
@@ -1290,3 +1292,216 @@ async def test_dhw_state_unknown_code(
     assert state.attributes["code"] == raw
     # The other sensors still update.
     assert state_by_unique_id(hass, "79b3").state == "26.41"
+
+
+# Statistics page: energy totals and counters (docs/stats-mapping.md, sections
+# "Energie totaal" and "Tellers"). key: (translation_key, en name, nl name,
+# value in tests/fixtures/stats_values_statistics.json).
+ENERGY_SENSORS = {
+    "63b3": (
+        "ch_heat_pump_energy_used",
+        "CH heat pump energy used",
+        "Cv warmtepomp energie verbruikt",
+        3,
+    ),
+    "63f0": (
+        "ch_heat_pump_energy_generated",
+        "CH heat pump energy generated",
+        "Cv warmtepomp energie opgewekt",
+        34,
+    ),
+    "63df": (
+        "ch_boiler_energy_generated",
+        "CH boiler energy generated",
+        "Cv ketel energie opgewekt",
+        1,
+    ),
+    "6358": (
+        "dhw_heat_pump_energy_used",
+        "DHW heat pump energy used",
+        "Tapwater warmtepomp energie verbruikt",
+        8,
+    ),
+    "6339": (
+        "dhw_heat_pump_energy_generated",
+        "DHW heat pump energy generated",
+        "Tapwater warmtepomp energie opgewekt",
+        46,
+    ),
+    "4a76": (
+        "dhw_boiler_energy_generated",
+        "DHW boiler energy generated",
+        "Tapwater ketel energie opgewekt",
+        76,
+    ),
+}
+HOUR_SENSORS = {
+    "6ac5": (
+        "compressor_runtime_ch",
+        "Compressor runtime CH",
+        "Draaiuren compressor cv",
+        9,
+    ),
+    "6a6c": (
+        "compressor_runtime_dhw",
+        "Compressor runtime DHW",
+        "Draaiuren compressor tapwater",
+        6,
+    ),
+    "71a7": ("uptime", "Uptime", "Uptime", 100),
+    "4e13": ("water_pump_hours", "Water pump hours", "Draaiuren waterpomp", 99),
+    "4eeb": ("crank_heater_hours", "Crank heater hours", "Uren carterverwarming", 7),
+    "4e3a": (
+        "base_pan_heater_hours",
+        "Base pan heater hours",
+        "Uren bodemplaatverwarming",
+        0,
+    ),
+    "8ef9": ("boiler_runtime_ch", "Boiler runtime CH", "Branduren ketel cv", 658),
+    "8e37": (
+        "boiler_runtime_dhw",
+        "Boiler runtime DHW",
+        "Branduren ketel tapwater",
+        85,
+    ),
+}
+COUNT_SENSORS = {
+    "6a8e": ("compressor_starts_ch", "Compressor starts CH", "Compressorstarts cv", 9),
+    "6a8d": (
+        "compressor_starts_dhw",
+        "Compressor starts DHW",
+        "Compressorstarts tapwater",
+        6,
+    ),
+    "7160": ("power_cycles", "Power cycles", "Aantal keer ingeschakeld", 13),
+    "6a53": ("defrost_cycles", "Defrost cycles", "Ontdooicycli", 0),
+    "4a22": ("water_pump_starts", "Water pump starts", "Starts waterpomp", 8),
+    "4a3c": (
+        "crank_heater_starts",
+        "Crank heater starts",
+        "Starts carterverwarming",
+        58,
+    ),
+    "4aeb": (
+        "base_pan_heater_starts",
+        "Base pan heater starts",
+        "Starts bodemplaatverwarming",
+        0,
+    ),
+    "8e00": ("boiler_starts", "Boiler starts", "Starts ketel", 10277),
+    "8e18": ("boiler_flame_loss", "Boiler flame loss", "Vlamverlies ketel", 1),
+}
+STATISTICS_SENSORS = {**ENERGY_SENSORS, **HOUR_SENSORS, **COUNT_SENSORS}
+
+
+def test_statistics_sensors_are_the_last_23_stats_fields() -> None:
+    assert len(STATISTICS_SENSORS) == 23
+    assert list(STATS_FIELDS[32:]) == [
+        "63b3", "63f0", "63df", "6358", "6339", "4a76", "6a8e", "6a8d", "6ac5",
+        "6a6c", "71a7", "7160", "6a53", "4e13", "4eeb", "4e3a", "4a22", "4a3c",
+        "4aeb", "8e00", "8ef9", "8e37", "8e18",
+    ]  # fmt: skip
+    assert set(STATS_FIELDS[32:]) == set(STATISTICS_SENSORS)
+
+
+def test_statistics_descriptions() -> None:
+    descriptions = {d.key: d for d in SENSORS}
+    for key, (translation_key, *_rest) in STATISTICS_SENSORS.items():
+        description = descriptions[key]
+        assert description.translation_key == translation_key, key
+        assert description.factor == 1, key
+        assert description.state_class == SensorStateClass.TOTAL_INCREASING, key
+        assert description.entity_registry_enabled_default is True, key
+        assert description.none_values == frozenset({32767}), key
+    for key in ENERGY_SENSORS:
+        description = descriptions[key]
+        assert description.native_unit_of_measurement == UnitOfEnergy.KILO_WATT_HOUR
+        assert description.device_class == SensorDeviceClass.ENERGY
+        assert description.entity_category is None, key
+    for key in HOUR_SENSORS:
+        description = descriptions[key]
+        assert description.native_unit_of_measurement == UnitOfTime.HOURS
+        assert description.device_class == SensorDeviceClass.DURATION
+        assert description.entity_category == EntityCategory.DIAGNOSTIC, key
+    for key in COUNT_SENSORS:
+        description = descriptions[key]
+        assert description.native_unit_of_measurement is None, key
+        assert description.device_class is None, key
+        assert description.entity_category == EntityCategory.DIAGNOSTIC, key
+
+
+@pytest.mark.parametrize("key", list(STATISTICS_SENSORS))
+def test_statistics_values(
+    stats_payload_statistics: dict[str, int | str], key: str
+) -> None:
+    # Verify steps: the sample values of docs/stats-mapping.md (the Total
+    # column of the owner's screenshot for the energy totals).
+    description = {d.key: d for d in SENSORS}[key]
+    value = make_sensor(description, stats_payload_statistics).native_value
+    assert value == STATISTICS_SENSORS[key][3]
+    assert isinstance(value, int)
+    assert make_sensor(description, {key: 32767}).native_value is None
+
+
+def test_statistics_totals_match_the_screenshot(
+    stats_payload_statistics: dict[str, int | str],
+) -> None:
+    descriptions = {d.key: d for d in SENSORS}
+
+    def value(key: str) -> int:
+        return make_sensor(descriptions[key], stats_payload_statistics).native_value
+
+    # CH total generated and DHW total generated, as on the statistics page.
+    assert value("63f0") + value("63df") == 35
+    assert value("6339") + value("4a76") == 122
+
+
+async def test_statistics_states_and_classes(
+    hass: HomeAssistant, stats_payload_statistics: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_statistics)
+    entity_registry = er.async_get(hass)
+    for key, (translation_key, en_name, _nl, raw_value) in STATISTICS_SENSORS.items():
+        state = state_by_unique_id(hass, key)
+        assert state.state == str(raw_value), key
+        assert state.attributes["state_class"] == "total_increasing", key
+        assert state.attributes["friendly_name"] == f"Intergas Xtend {en_name}", key
+        registry_entry = entity_registry.async_get(state.entity_id)
+        assert registry_entry is not None
+        assert registry_entry.translation_key == translation_key
+        assert registry_entry.disabled_by is None, key
+    energy = hass.states.get("sensor.intergas_xtend_ch_heat_pump_energy_generated")
+    assert energy is not None
+    assert energy.state == "34"
+    assert energy.attributes["unit_of_measurement"] == "kWh"
+    assert energy.attributes["device_class"] == "energy"
+    hours = state_by_unique_id(hass, "8ef9")
+    assert hours.attributes["unit_of_measurement"] == "h"
+    assert hours.attributes["device_class"] == "duration"
+    starts = state_by_unique_id(hass, "8e00")
+    assert starts.state == "10277"
+    assert "unit_of_measurement" not in starts.attributes
+    assert "device_class" not in starts.attributes
+
+
+async def test_statistics_sensors_are_unknown_in_older_captures(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    # The summary page captures do not hold the statistics fields.
+    await setup_entry(hass, stats_payload)
+    for key in STATISTICS_SENSORS:
+        assert state_by_unique_id(hass, key).state == STATE_UNKNOWN, key
+    assert state_by_unique_id(hass, "79b3").state == "26.41"
+
+
+def test_statistics_names_in_all_translation_files() -> None:
+    integration = SENSOR_PY.parent
+    files = {
+        "strings": (integration / "strings.json", 1),
+        "en": (integration / "translations" / "en.json", 1),
+        "nl": (integration / "translations" / "nl.json", 2),
+    }
+    for label, (path, column) in files.items():
+        names = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
+        for row in STATISTICS_SENSORS.values():
+            assert names[row[0]]["name"] == row[column], (label, row[0])

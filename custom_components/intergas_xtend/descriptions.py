@@ -18,9 +18,11 @@ from homeassistant.components.sensor import (
 from homeassistant.const import (
     PERCENTAGE,
     EntityCategory,
+    UnitOfEnergy,
     UnitOfPower,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfTime,
     UnitOfVolume,
     UnitOfVolumeFlowRate,
 )
@@ -79,6 +81,46 @@ def power(key: str, translation_key: str) -> XtendSensorDescription:
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         state_class=SensorStateClass.MEASUREMENT,
+    )
+
+
+def energy(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe an energy total: whole kWh since commissioning.
+
+    Source: docs/stats-mapping.md, section "Energie totaal". The value only
+    goes up, so the sensor can be used in the Home Assistant Energy dashboard.
+    """
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        factor=1,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+    )
+
+
+def hours(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe an hour counter of the statistics page (docs/stats-mapping.md)."""
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        factor=1,
+        native_unit_of_measurement=UnitOfTime.HOURS,
+        device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    )
+
+
+def count(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe a start or cycle counter of the statistics page: no unit."""
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        factor=1,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
     )
 
 
@@ -254,4 +296,29 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     ),
     raw("7774", "raw_7774"),
     raw("77de", "raw_77de"),
+    # Energie totaal (statistics page, column Total): whole kWh.
+    energy("63b3", "ch_heat_pump_energy_used"),
+    energy("63f0", "ch_heat_pump_energy_generated"),
+    energy("63df", "ch_boiler_energy_generated"),
+    energy("6358", "dhw_heat_pump_energy_used"),
+    energy("6339", "dhw_heat_pump_energy_generated"),
+    energy("4a76", "dhw_boiler_energy_generated"),
+    # Tellers (statistics page): hours and counts, diagnostic.
+    count("6a8e", "compressor_starts_ch"),
+    count("6a8d", "compressor_starts_dhw"),
+    hours("6ac5", "compressor_runtime_ch"),
+    hours("6a6c", "compressor_runtime_dhw"),
+    hours("71a7", "uptime"),
+    count("7160", "power_cycles"),
+    count("6a53", "defrost_cycles"),
+    hours("4e13", "water_pump_hours"),
+    hours("4eeb", "crank_heater_hours"),
+    hours("4e3a", "base_pan_heater_hours"),
+    count("4a22", "water_pump_starts"),
+    count("4a3c", "crank_heater_starts"),
+    count("4aeb", "base_pan_heater_starts"),
+    count("8e00", "boiler_starts"),
+    hours("8ef9", "boiler_runtime_ch"),
+    hours("8e37", "boiler_runtime_dhw"),
+    count("8e18", "boiler_flame_loss"),
 )

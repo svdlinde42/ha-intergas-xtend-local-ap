@@ -51,10 +51,13 @@ NO_FAULT = 0
 # Response: {"stats": {"<hex id>": <int | str>}}
 STATS_PATH = "/api/stats/values"
 
-# The 32 stats ids read in phase 1, in request order. Meaning, scale factor and
-# unit of each id are in docs/stats-mapping.md; that file is the only source for
-# field semantics. Source: docs/stats-mapping.md and a capture from the device
-# on 2026-10-06.
+# The stats ids read on every poll, in request order; all of them go into one
+# request. Meaning, scale factor and unit of each id are in
+# docs/stats-mapping.md; that file is the only source for field semantics.
+# Source: the first 32 ids are from docs/stats-mapping.md and a capture from the
+# device on 2026-10-06 (summary page); the last 23 are the energy totals and
+# counters of the statistics page (docs/stats-mapping.md, sections
+# "Energie totaal" and "Tellers", page source and capture of 2026-10-07).
 STATS_FIELDS: tuple[str, ...] = (
     "7940",
     "79b3",
@@ -88,4 +91,29 @@ STATS_FIELDS: tuple[str, ...] = (
     "610b",
     "6101",
     "6117",
+    # Statistics page: energy totals in kWh.
+    "63b3",
+    "63f0",
+    "63df",
+    "6358",
+    "6339",
+    "4a76",
+    # Statistics page: counters (starts, hours, cycles).
+    "6a8e",
+    "6a8d",
+    "6ac5",
+    "6a6c",
+    "71a7",
+    "7160",
+    "6a53",
+    "4e13",
+    "4eeb",
+    "4e3a",
+    "4a22",
+    "4a3c",
+    "4aeb",
+    "8e00",
+    "8ef9",
+    "8e37",
+    "8e18",
 )

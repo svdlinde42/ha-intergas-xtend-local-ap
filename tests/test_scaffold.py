@@ -26,7 +26,10 @@ INTEGRATION = ROOT / "custom_components" / "intergas_xtend"
 EXPECTED_STATS_FIELDS = (
     "7940,79b3,7921,7e2c,77c3,7e51,77d2,f9f2,7ed3,629c,6280,621d,62ed,503e,5088,"
     "5077,5041,50f2,62d1,620f,6206,8439,47e0,7e7a,7774,77de,6115,61ba,61eb,610b,"
-    "6101,6117"
+    "6101,6117,"
+    # Statistics page: energy totals, then counters (docs/stats-mapping.md).
+    "63b3,63f0,63df,6358,6339,4a76,6a8e,6a8d,6ac5,6a6c,71a7,7160,6a53,4e13,4eeb,"
+    "4e3a,4a22,4a3c,4aeb,8e00,8ef9,8e37,8e18"
 ).split(",")
 
 
@@ -54,10 +57,10 @@ def test_scan_interval_constants() -> None:
     assert (MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, MAX_SCAN_INTERVAL) == (5, 10, 60)
 
 
-def test_stats_fields_are_32_unique_ids_in_order() -> None:
+def test_stats_fields_are_55_unique_ids_in_order() -> None:
     assert STATS_PATH == "/api/stats/values"
-    assert len(STATS_FIELDS) == 32
-    assert len(set(STATS_FIELDS)) == 32
+    assert len(STATS_FIELDS) == 55
+    assert len(set(STATS_FIELDS)) == 55
     assert list(STATS_FIELDS) == EXPECTED_STATS_FIELDS
     assert all(len(f) == 4 and int(f, 16) >= 0 for f in STATS_FIELDS)
 
@@ -192,11 +195,12 @@ def test_translations_match_strings_json() -> None:
     assert en == strings
     assert _key_paths(nl) == _key_paths(strings)
     # Dutch texts differ from English, except labels that are identical in
-    # both languages (the host field label, the COP sensor name and two
-    # operating mode states).
+    # both languages (the host field label, the COP and Uptime sensor names
+    # and two operating mode states).
     same_in_both = {
         "config.step.user.data.host",
         "entity.sensor.cop.name",
+        "entity.sensor.uptime.name",
         "entity.sensor.operating_mode.state.service",
         "entity.sensor.operating_mode.state.opentherm",
     }
@@ -214,7 +218,7 @@ def test_every_sensor_translation_key_has_a_name_in_all_files() -> None:
     from custom_components.intergas_xtend.descriptions import SENSORS
 
     keys = {d.translation_key for d in SENSORS}
-    assert len(keys) == len(SENSORS) == 32
+    assert len(keys) == len(SENSORS) == 55
     files = {
         "strings": INTEGRATION / "strings.json",
         "en": INTEGRATION / "translations" / "en.json",

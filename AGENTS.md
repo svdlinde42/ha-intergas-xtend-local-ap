@@ -28,8 +28,9 @@ distribute add-ons.
   exposes a REST interface: GET for status, writes for installer parameters.
 - Status endpoint (captured 2026-10-06, firmware V1.20-):
   `GET http://<host>/api/stats/values?fields=<comma-separated hex ids>`. Response is
-  `{"stats": {"<hex-id>": <int | string>}}`. The 32 ids used in phase 1 and their meaning,
-  scale factor and unit are in `docs/stats-mapping.md`. That file is the only source for
+  `{"stats": {"<hex-id>": <int | string>}}`. The 55 polled ids (32 from the summary page,
+  23 energy totals and counters from the statistics page) and their meaning, scale factor
+  and unit are in `docs/stats-mapping.md`. That file is the only source for
   field semantics; do not add or change a mapping without updating it.
 - Sentinel values: `32767` means "not available" for every numeric field. `255` means
   "no notification" for 7940 and 7e2c. `0` means "no fault" for 8439.
