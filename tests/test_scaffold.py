@@ -238,3 +238,34 @@ def test_validate_workflow_has_three_jobs() -> None:
     runs = [step.get("run", "") for step in workflow["jobs"]["tests"]["steps"]]
     assert "ruff check ." in runs
     assert "pytest" in runs
+
+
+def test_readme_has_the_required_sections_and_lists_every_sensor() -> None:
+    from custom_components.intergas_xtend.descriptions import SENSORS
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for heading in (
+        "## Installation",
+        "## Network",
+        "## Access point timeout",
+        "## Entities",
+        "## Notes",
+    ):
+        assert heading in readme
+    assert "10.20.30.1" in readme
+    assert "2025.11.0" in readme
+    assert "docs/fault-codes.md" in readme
+
+    names = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))[
+        "entity"
+    ]["sensor"]
+    rows = {
+        line.split("|")[1].strip(): line.split("|")[3].strip()
+        for line in readme.splitlines()
+        if line.startswith("| ") and line.count("|") == 4
+    }
+    for description in SENSORS:
+        name = names[description.translation_key]["name"]
+        assert name in rows, name
+        enabled = rows[name].startswith("yes")
+        assert enabled == description.entity_registry_enabled_default, name

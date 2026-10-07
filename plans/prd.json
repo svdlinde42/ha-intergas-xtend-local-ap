@@ -425,7 +425,7 @@
       "Add note: minimum Home Assistant 2025.11.0, the first release that runs on Python 3.14 (hacs.json, decided 2026-10-07)",
       "Verify: README has these five sections"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
