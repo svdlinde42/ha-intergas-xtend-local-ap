@@ -70,7 +70,8 @@ custom_components/intergas_xtend/
   api.py             # thin aiohttp client for the Xtend REST interface, no HA imports
   coordinator.py     # DataUpdateCoordinator; owns poll interval and AP-timeout handling
   config_flow.py     # host + interval; validate by performing one GET
-  const.py
+  const.py           # no Home Assistant imports: api.py imports it
+  descriptions.py    # XtendSensorDescription and the SENSORS table (docs/stats-mapping.md)
   codes.py           # fault/notification code tables, generated from docs/fault-codes.json
   sensor.py, button.py                 # phase 1 (button = "Poll now")
   number.py, select.py, switch.py      # phase 2

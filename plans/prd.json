@@ -208,13 +208,13 @@
     "category": "entities",
     "description": "Sensor definitions are one table in const.py driven by docs/stats-mapping.md",
     "steps": [
-      "In const.py define a frozen dataclass XtendSensorDescription extending SensorEntityDescription with fields: factor (float | None), none_values (frozenset[int]), text_format (str | None)",
+      "In descriptions.py (not const.py: api.py imports const.py and must stay free of Home Assistant imports, decided 2026-10-07) define a frozen dataclass XtendSensorDescription extending SensorEntityDescription with fields: factor (float | None), none_values (frozenset[int]), text_format (str | None)",
       "Define SENSORS: tuple[XtendSensorDescription, ...] with one entry per field in STATS_FIELDS, key = hex id",
       "Default none_values = frozenset({32767}) for every numeric field",
       "Add a comment above SENSORS: 'Source: docs/stats-mapping.md. Do not change factors or units without updating that file.'",
       "Verify: {d.key for d in SENSORS} == set(STATS_FIELDS)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
@@ -398,7 +398,7 @@
     "description": "Field mapping is stored in the repository",
     "steps": [
       "Create docs/stats-mapping.md with the mapping document exactly as provided by the owner",
-      "Reference docs/stats-mapping.md from AGENTS.md and from the comment above SENSORS in const.py",
+      "Reference docs/stats-mapping.md from AGENTS.md and from the comment above SENSORS in descriptions.py",
       "Verify: every id in STATS_FIELDS appears in docs/stats-mapping.md"
     ],
     "passes": true

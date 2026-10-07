@@ -1,7 +1,7 @@
 """Sensor platform for the Intergas Xtend integration.
 
 The coordinator item forwards setup to this platform. The sensor entities
-(one generic XtendSensor per SENSORS entry in const.py) are added by the
+(one generic XtendSensor per SENSORS entry in descriptions.py) are added by the
 entities items in plans/prd.json; until then this platform adds nothing.
 """
 

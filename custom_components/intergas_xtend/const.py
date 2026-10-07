@@ -36,6 +36,10 @@ MANUFACTURER = "Intergas"
 # Stats id of the firmware version string, e.g. "V1.20-" (docs/stats-mapping.md).
 FIRMWARE_FIELD = "47e0"
 
+# Sentinel: a numeric stats field holds this value when the Xtend has no
+# value for it, e.g. a sensor that is not connected (docs/stats-mapping.md).
+NOT_AVAILABLE = 32767
+
 # REST status endpoint of the Xtend. Captured from the device on 2026-10-06
 # (firmware V1.20-), not guessed. Request:
 #   GET http://<host>/api/stats/values?fields=<comma-separated hex ids>
