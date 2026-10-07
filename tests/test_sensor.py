@@ -823,3 +823,105 @@ async def test_firmware_state_is_diagnostic_text(
     assert registry_entry is not None
     assert registry_entry.entity_category == EntityCategory.DIAGNOSTIC
     assert registry_entry.translation_key == "firmware_version"
+
+
+# Raw bitfield and unknown fields (entities item): key -> translation_key.
+RAW_SENSORS = {
+    "7e51": "heat_demand_status",
+    "7e7a": "burner_status",
+    "77c3": "status_flags",
+    "77d2": "system_io",
+    "f9f2": "bivalent_service_flags",
+    "6101": "raw_6101",
+    "6117": "raw_6117",
+    "7774": "raw_7774",
+    "77de": "raw_77de",
+}
+
+
+def test_raw_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+    for key, translation_key in RAW_SENSORS.items():
+        description = by_key[key]
+        assert description.translation_key == translation_key, key
+        assert description.factor is None, key
+        assert description.text_format is None, key
+        assert description.code_lookup is None, key
+        assert description.none_values == frozenset(), key
+        assert description.entity_category == EntityCategory.DIAGNOSTIC, key
+        assert description.entity_registry_enabled_default is False, key
+        assert description.native_unit_of_measurement is None, key
+        assert description.device_class is None, key
+        assert description.state_class is None, key
+
+    # Every other sensor is enabled by default.
+    for description in SENSORS:
+        if description.key not in RAW_SENSORS:
+            assert description.entity_registry_enabled_default is True, description.key
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [
+        # Verify step: the raw number is shown, 255 is not a sentinel here.
+        ("77d2", 17102),
+        ("7774", 255),
+        ("77de", 255),
+        ("7e51", 206),
+        ("7e7a", 64),
+        ("77c3", 208),
+        ("f9f2", 265),
+        ("6101", 396),
+        ("6117", 3),
+    ],
+)
+def test_raw_values_from_first_capture(
+    stats_payload: dict[str, int | str], key: str, expected: int
+) -> None:
+    value = make_sensor({d.key: d for d in SENSORS}[key], stats_payload).native_value
+    assert value == expected
+    assert type(value) is int
+
+
+def test_raw_values_keep_32767(stats_payload: dict[str, int | str]) -> None:
+    # 32767 means "not available" elsewhere; a raw field shows it as it is.
+    description = {d.key: d for d in SENSORS}["77d2"]
+    assert make_sensor(description, {**stats_payload, "77d2": 32767}).native_value == (
+        32767
+    )
+
+
+async def test_raw_sensors_are_disabled_diagnostics(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    entry = await setup_entry(hass, stats_payload)
+    entity_registry = er.async_get(hass)
+
+    for key, translation_key in RAW_SENSORS.items():
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None, key
+        registry_entry = entity_registry.async_get(entity_id)
+        assert registry_entry is not None
+        assert registry_entry.entity_category == EntityCategory.DIAGNOSTIC, key
+        assert registry_entry.translation_key == translation_key, key
+        assert registry_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION, key
+        # A disabled entity is registered but has no state.
+        assert hass.states.get(entity_id) is None, key
+
+    # Enabling one in the registry brings it up with the raw value after a reload.
+    entity_id = entity_registry.async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, f"{HOST}_77d2"
+    )
+    assert entity_id is not None
+    entity_registry.async_update_entity(entity_id, disabled_by=None)
+    with patch(GET_STATS, return_value=stats_payload):
+        await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "17102"
+    assert "unit_of_measurement" not in state.attributes
+    assert "device_class" not in state.attributes
+    assert "state_class" not in state.attributes

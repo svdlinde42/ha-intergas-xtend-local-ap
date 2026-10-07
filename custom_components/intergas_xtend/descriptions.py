@@ -76,6 +76,25 @@ def power(key: str, translation_key: str) -> XtendSensorDescription:
     )
 
 
+def raw(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe a bitfield or unknown field: the raw number, nothing more.
+
+    The meaning of these fields is not known (docs/stats-mapping.md, section
+    "Bitvelden en ongeduide sleutels"), so no factor, unit or sentinel is
+    applied: 255 and 32767 are shown as they are, because hiding them would
+    hide the data needed to work out what the field means. They are
+    diagnostic and disabled by default; the research item in plans/prd.json
+    uses them to map the derived states of the summary page.
+    """
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        none_values=frozenset(),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    )
+
+
 # Source: docs/stats-mapping.md. Do not change factors or units without
 # updating that file. One entry per id in STATS_FIELDS, grouped like the
 # sections of that document. The per-group entities items in plans/prd.json
@@ -179,14 +198,14 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         icon="mdi:chip",
     ),
-    # Bitvelden en ongeduide sleutels
-    XtendSensorDescription(key="7e51"),
-    XtendSensorDescription(key="7e7a"),
-    XtendSensorDescription(key="77c3"),
-    XtendSensorDescription(key="77d2"),
-    XtendSensorDescription(key="f9f2"),
-    XtendSensorDescription(key="6101"),
-    XtendSensorDescription(key="6117"),
-    XtendSensorDescription(key="7774"),
-    XtendSensorDescription(key="77de"),
+    # Bitvelden en ongeduide sleutels: raw diagnostics, disabled by default.
+    raw("7e51", "heat_demand_status"),
+    raw("7e7a", "burner_status"),
+    raw("77c3", "status_flags"),
+    raw("77d2", "system_io"),
+    raw("f9f2", "bivalent_service_flags"),
+    raw("6101", "raw_6101"),
+    raw("6117", "raw_6117"),
+    raw("7774", "raw_7774"),
+    raw("77de", "raw_77de"),
 )

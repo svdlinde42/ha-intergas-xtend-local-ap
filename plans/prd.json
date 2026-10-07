@@ -320,7 +320,7 @@
       "Each: no factor, none_values empty, entity_category DIAGNOSTIC, entity_registry_enabled_default False",
       "Verify with stats_values: 77d2 -> 17102, 7774 -> 255 (not None)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
