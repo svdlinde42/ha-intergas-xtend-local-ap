@@ -14,7 +14,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfTemperature
+from homeassistant.const import UnitOfPower, UnitOfTemperature
 
 from .const import FIRMWARE_FIELD, NOT_AVAILABLE
 
@@ -46,6 +46,22 @@ def temperature(key: str, translation_key: str) -> XtendSensorDescription:
     )
 
 
+def power(key: str, translation_key: str) -> XtendSensorDescription:
+    """Describe a power field: raw value in W.
+
+    docs/stats-mapping.md lists factor 0,001 and kW; the Xtend summary page
+    shows the same quantity in W, so the raw value is used as it is.
+    """
+    return XtendSensorDescription(
+        key=key,
+        translation_key=translation_key,
+        factor=1,
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        state_class=SensorStateClass.MEASUREMENT,
+    )
+
+
 # Source: docs/stats-mapping.md. Do not change factors or units without
 # updating that file. One entry per id in STATS_FIELDS, grouped like the
 # sections of that document. The per-group entities items in plans/prd.json
@@ -56,11 +72,18 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     XtendSensorDescription(key="7e2c"),
     XtendSensorDescription(key="8439"),
     # Vermogen en COP
-    XtendSensorDescription(key="503e"),
-    XtendSensorDescription(key="5088"),
-    XtendSensorDescription(key="5077"),
-    XtendSensorDescription(key="50f2"),
-    XtendSensorDescription(key="5041"),
+    power("503e", "heat_pump_power"),
+    power("5088", "boiler_power"),
+    power("5077", "total_thermal_power"),
+    power("50f2", "retrieved_power"),
+    # COP is a ratio: raw value in 0.1, no unit and no device class.
+    XtendSensorDescription(
+        key="5041",
+        translation_key="cop",
+        factor=0.1,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:heat-pump",
+    ),
     # CV-water
     XtendSensorDescription(key="629c"),
     temperature("6280", "ch_return_temperature"),

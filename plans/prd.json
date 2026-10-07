@@ -251,7 +251,7 @@
       "Verify with stats_values_n095: 503e -> 5000, 5077 -> 5000, 50f2 -> 1419, 5041 -> 3.5",
       "Verify with stats_values_standby against the screenshot: 503e -> 0, 5088 -> 0, 5077 -> 0, 50f2 -> 7, 5041 -> 0.0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

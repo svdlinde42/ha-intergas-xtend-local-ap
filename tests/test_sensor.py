@@ -15,7 +15,12 @@ from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorStateClass,
 )
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN, UnitOfTemperature
+from homeassistant.const import (
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    UnitOfPower,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
@@ -295,3 +300,94 @@ async def test_temperature_state_has_unit_and_classes(
     assert state.attributes["unit_of_measurement"] == "°C"
     assert state.attributes["device_class"] == "temperature"
     assert state.attributes["state_class"] == "measurement"
+
+
+# Power and COP sensors (entities item): key -> translation_key.
+POWER_SENSORS = {
+    "503e": "heat_pump_power",
+    "5088": "boiler_power",
+    "5077": "total_thermal_power",
+    "50f2": "retrieved_power",
+}
+
+
+def test_power_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+    for key, translation_key in POWER_SENSORS.items():
+        description = by_key[key]
+        assert description.translation_key == translation_key, key
+        assert description.factor == 1, key
+        assert description.native_unit_of_measurement == UnitOfPower.WATT, key
+        assert description.device_class == SensorDeviceClass.POWER, key
+        assert description.state_class == SensorStateClass.MEASUREMENT, key
+        assert description.none_values == frozenset({32767}), key
+
+
+def test_cop_description() -> None:
+    description = {d.key: d for d in SENSORS}["5041"]
+    assert description.translation_key == "cop"
+    assert description.factor == 0.1
+    assert description.native_unit_of_measurement is None
+    assert description.device_class is None
+    assert description.state_class == SensorStateClass.MEASUREMENT
+    assert description.icon == "mdi:heat-pump"
+    assert description.none_values == frozenset({32767})
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "key", "expected"),
+    [
+        # Verify step, first capture.
+        ("stats_payload", "5088", 7917),
+        ("stats_payload", "50f2", 7),
+        ("stats_payload", "5041", 0.0),
+        # Verify step, n095 capture (heat pump at 5000 W, COP 3.5).
+        ("stats_payload_n095", "503e", 5000),
+        ("stats_payload_n095", "5077", 5000),
+        ("stats_payload_n095", "50f2", 1419),
+        ("stats_payload_n095", "5041", 3.5),
+        # Verify step, standby capture against the summary screenshot.
+        ("stats_payload_standby", "503e", 0),
+        ("stats_payload_standby", "5088", 0),
+        ("stats_payload_standby", "5077", 0),
+        ("stats_payload_standby", "50f2", 7),
+        ("stats_payload_standby", "5041", 0.0),
+    ],
+)
+def test_power_and_cop_values_from_the_captures(
+    request: pytest.FixtureRequest, fixture_name: str, key: str, expected: float
+) -> None:
+    payload: dict[str, int | str] = request.getfixturevalue(fixture_name)
+    value = make_sensor({d.key: d for d in SENSORS}[key], payload).native_value
+    assert value == expected
+    # Power stays an integer number of W; COP is a float.
+    assert type(value) is type(expected)
+
+
+async def test_power_and_cop_states_have_unit_and_classes(
+    hass: HomeAssistant, stats_payload_n095: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_n095)
+    entity_registry = er.async_get(hass)
+
+    def state_of(key: str):
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return state
+
+    power = state_of("503e")
+    assert power.state == "5000"
+    assert power.attributes["unit_of_measurement"] == "W"
+    assert power.attributes["device_class"] == "power"
+    assert power.attributes["state_class"] == "measurement"
+
+    cop = state_of("5041")
+    assert cop.state == "3.5"
+    assert "unit_of_measurement" not in cop.attributes
+    assert "device_class" not in cop.attributes
+    assert cop.attributes["state_class"] == "measurement"
+    assert cop.attributes["icon"] == "mdi:heat-pump"
