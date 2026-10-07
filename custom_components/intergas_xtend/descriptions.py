@@ -7,7 +7,7 @@ a Home Assistant class.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from homeassistant.components.sensor import (
@@ -40,12 +40,17 @@ class XtendSensorDescription(SensorEntityDescription):
     code_lookup maps the formatted value (e.g. "n095") to the manual's entry
     in codes.py; the sensor shows it as the attributes description and
     cause_solution. None means the sensor has no such attributes.
+    value_map turns a raw integer code into an enum state name (for a sensor
+    with device_class ENUM). It applies after none_values; a code that is not
+    in the map gives None, so an unknown code shows as unknown and no name is
+    invented.
     """
 
     factor: float | None = None
     none_values: frozenset[int] = frozenset({NOT_AVAILABLE})
     text_format: str | None = None
     code_lookup: Callable[[str], CodeInfo | None] | None = None
+    value_map: Mapping[int, str] | None = None
 
 
 def temperature(key: str, translation_key: str) -> XtendSensorDescription:

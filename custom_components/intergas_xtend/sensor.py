@@ -2,7 +2,8 @@
 
 One generic ``XtendSensor`` class serves every entry of the SENSORS table in
 descriptions.py. The table says how a raw stats value becomes a sensor value
-(sentinels, scale factor, text format); this module only applies those rules.
+(sentinels, value map, scale factor, text format); this module only applies
+those rules.
 There are no per-field subclasses: a new field is a new table row, not new code.
 """
 
@@ -54,16 +55,21 @@ class XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity):
 
     @property
     def native_value(self) -> int | float | str | None:
-        """Convert the raw value: sentinel -> None, then text format or factor.
+        """Convert the raw value: sentinel, then value map, text format or factor.
 
-        A raw value that is not a number cannot be formatted or scaled; it
-        becomes None rather than an exception that would stop the update of
-        the other sensors.
+        A raw value that is not a number cannot be mapped, formatted or
+        scaled; it becomes None rather than an exception that would stop the
+        update of the other sensors. A code missing from the value map is
+        None as well.
         """
         description = self.entity_description
         raw = self.coordinator.data.get(description.key)
         if raw is None or raw in description.none_values:
             return None
+        if description.value_map is not None:
+            if not isinstance(raw, int):
+                return None
+            return description.value_map.get(raw)
         if description.text_format is not None:
             if not isinstance(raw, int | float):
                 return None

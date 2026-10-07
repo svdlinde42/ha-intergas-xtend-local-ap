@@ -163,6 +163,75 @@ def test_native_value_conversion(
     assert type(value) is type(expected)
 
 
+# Enum support item: a test description with a value map.
+ENUM_DESCRIPTION = XtendSensorDescription(
+    key="7e51",
+    device_class=SensorDeviceClass.ENUM,
+    options=["a"],
+    value_map={1: "a"},
+)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (1, "a"),
+        # A code that is not in the map: no name is invented.
+        (2, None),
+        # The sentinel is checked before the map.
+        (32767, None),
+        # A raw value that is not an integer cannot be mapped.
+        ("1", None),
+        (1.0, None),
+    ],
+)
+def test_value_map_gives_the_state_name(
+    raw: int | float | str, expected: str | None
+) -> None:
+    # Verify step of the enum support item.
+    assert make_sensor(ENUM_DESCRIPTION, {"7e51": raw}).native_value == expected
+
+
+def test_value_map_respects_none_values() -> None:
+    description = XtendSensorDescription(
+        key="7e51", none_values=frozenset({1}), value_map={1: "a", 2: "b"}
+    )
+    assert make_sensor(description, {"7e51": 1}).native_value is None
+    assert make_sensor(description, {"7e51": 2}).native_value == "b"
+
+
+async def test_unknown_enum_code_does_not_stop_other_sensors(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    room = next(d for d in SENSORS if d.key == "79b3")
+    payload = {**stats_payload, "7e51": 999}
+    with patch(
+        "custom_components.intergas_xtend.sensor.SENSORS", (ENUM_DESCRIPTION, room)
+    ):
+        entry = await setup_entry(hass, payload)
+    entity_registry = er.async_get(hass)
+
+    def state_of(key: str) -> str:
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        return hass.states.get(entity_id).state
+
+    assert state_of("7e51") == STATE_UNKNOWN
+    assert state_of("79b3") == "26.41"
+
+    with patch(GET_STATS, return_value={**payload, "7e51": 1, "79b3": 2262}):
+        await scheduled_poll(hass, entry.runtime_data)
+    assert state_of("7e51") == "a"
+    assert state_of("79b3") == "22.62"
+
+    with patch(GET_STATS, return_value={**payload, "7e51": 3, "79b3": 2000}):
+        await scheduled_poll(hass, entry.runtime_data)
+    assert state_of("7e51") == STATE_UNKNOWN
+    assert state_of("79b3") == "20.0"
+
+
 async def test_one_sensor_per_field_under_the_device(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:

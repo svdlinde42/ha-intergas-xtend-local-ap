@@ -358,7 +358,7 @@
       "Add the test to tests/test_sensor.py",
       "Verify: a test description with value_map {1: 'a'} gives 'a' for raw 1 and None for raw 2 and for 32767"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
