@@ -227,7 +227,7 @@
       "available = coordinator.last_update_success",
       "Verify: no per-field subclasses exist in sensor.py"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

@@ -164,8 +164,10 @@ async def test_scheduled_poll_runs_after_the_interval(
     coordinator = entry.runtime_data
 
     with patch(GET_STATS, return_value=stats_payload_standby) as get_stats:
-        # 9 s after setup nothing is polled yet ...
-        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=9))
+        # 8 s after setup nothing is polled yet. The coordinator aligns the
+        # next poll to a whole second, so it may be due anywhere between 9 s
+        # and 10 s after the first refresh; checking at 9 s was flaky.
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=8))
         await hass.async_block_till_done(wait_background_tasks=True)
         assert get_stats.call_count == 0
         # ... 11 s after it the scheduled poll has run.
