@@ -759,3 +759,67 @@ async def test_code_attributes_reach_the_state_machine(
     assert lockout.state == "F254"
     assert lockout.attributes["description"] == "Bypassmodus actief."
     assert len(lockout.attributes["cause_solution"]) == 2
+
+
+# Firmware version sensor (entities item).
+def test_firmware_description() -> None:
+    description = {d.key: d for d in SENSORS}["47e0"]
+    assert description.translation_key == "firmware_version"
+    assert description.factor is None
+    assert description.text_format is None
+    assert description.code_lookup is None
+    # The value is a string, so no numeric sentinel applies.
+    assert description.none_values == frozenset()
+    assert description.entity_category == EntityCategory.DIAGNOSTIC
+    assert description.icon == "mdi:chip"
+    assert description.native_unit_of_measurement is None
+    assert description.device_class is None
+    assert description.state_class is None
+
+
+@pytest.mark.parametrize(
+    "fixture_name", ["stats_payload", "stats_payload_standby", "stats_payload_n095"]
+)
+def test_firmware_value_is_the_string_unchanged(
+    request: pytest.FixtureRequest, fixture_name: str
+) -> None:
+    # Verify step: every capture reports firmware V1.20-.
+    payload: dict[str, int | str] = request.getfixturevalue(fixture_name)
+    value = make_sensor({d.key: d for d in SENSORS}["47e0"], payload).native_value
+    assert value == "V1.20-"
+    assert type(value) is str
+
+
+def test_firmware_value_is_none_only_when_missing(
+    stats_payload: dict[str, int | str],
+) -> None:
+    description = {d.key: d for d in SENSORS}["47e0"]
+    without = {k: v for k, v in stats_payload.items() if k != "47e0"}
+    assert make_sensor(description, without).native_value is None
+    # 32767 is not a sentinel for this field: an unexpected number is shown
+    # as it is rather than hidden.
+    assert make_sensor(description, {**stats_payload, "47e0": 32767}).native_value == (
+        32767
+    )
+
+
+async def test_firmware_state_is_diagnostic_text(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload)
+    entity_registry = er.async_get(hass)
+    entity_id = entity_registry.async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, f"{HOST}_47e0"
+    )
+    assert entity_id is not None
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "V1.20-"
+    assert state.attributes["icon"] == "mdi:chip"
+    assert "unit_of_measurement" not in state.attributes
+    assert "device_class" not in state.attributes
+    assert "state_class" not in state.attributes
+    registry_entry = entity_registry.async_get(entity_id)
+    assert registry_entry is not None
+    assert registry_entry.entity_category == EntityCategory.DIAGNOSTIC
+    assert registry_entry.translation_key == "firmware_version"

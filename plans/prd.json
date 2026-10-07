@@ -310,7 +310,7 @@
       "native_value returns the string unchanged",
       "Verify with fixture: value is 'V1.20-'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

@@ -170,8 +170,15 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     temperature("79b3", "room_temperature"),
     temperature("7921", "room_target_temperature"),
     temperature("62d1", "outside_temperature"),
-    # Systeem: the firmware version is a string, so no numeric sentinel applies.
-    XtendSensorDescription(key=FIRMWARE_FIELD, none_values=frozenset()),
+    # Systeem: the firmware version is a string ("V1.20-"), shown unchanged;
+    # no factor and no numeric sentinel apply.
+    XtendSensorDescription(
+        key=FIRMWARE_FIELD,
+        translation_key="firmware_version",
+        none_values=frozenset(),
+        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:chip",
+    ),
     # Bitvelden en ongeduide sleutels
     XtendSensorDescription(key="7e51"),
     XtendSensorDescription(key="7e7a"),
