@@ -8,14 +8,42 @@ does not change any setting on the boiler.
 
 ## Installation
 
-1. In HACS, add this repository as a custom repository with type **Integration**.
-2. Install **Intergas Xtend** and restart Home Assistant.
-3. Go to Settings, Devices & services, Add integration, and choose **Intergas Xtend**.
+### HACS (Recommended)
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=svdlinde42&repository=ha-intergas-xtend-local-ap&category=integration)
+
+Alternatively:
+
+1. Install [HACS](https://hacs.xyz) if not already installed
+2. In HACS, open the menu (**⋮**) → **Custom repositories**
+3. Add `https://github.com/svdlinde42/ha-intergas-xtend-local-ap` with type **Integration**
+4. Search for "Intergas Xtend" in HACS and click **Download**
+5. Restart Home Assistant
+6. Add via **Settings** → **Devices & Services**
+
+### Manual Installation
+
+1. Copy `custom_components/intergas_xtend` to your `<config>/custom_components/` directory
+2. Restart Home Assistant
+3. Add via **Settings** → **Devices & Services**
+
+## Configuration
+
+1. Navigate to **Settings** → **Devices & Services**
+2. Click **+ Add Integration**
+3. Search for **"Intergas Xtend"**
 4. Enter the IP address of the Xtend (default `10.20.30.1`) and the poll interval in seconds
-   (default 10, minimum 5, maximum 60). You can change the interval later in the options.
 
 The integration does one request to the Xtend before it creates the entry. If that fails, check
 the network (see below).
+
+### Options
+
+After setup, configure these options via the integration's **Configure** button:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| Poll interval (seconds) | 10 | How often the status is read (5–60). Polling also keeps the access point awake. |
 
 ## Network
 
