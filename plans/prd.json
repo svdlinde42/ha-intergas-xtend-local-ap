@@ -391,7 +391,7 @@
       "Run pytest and confirm every test passes",
       "Verify: all three commands exit with code 0"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "docs",
