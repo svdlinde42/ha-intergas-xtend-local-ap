@@ -24,7 +24,7 @@
       "Add job running ruff check and pytest",
       "Verify: workflow file parses and all three jobs are listed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "api",
