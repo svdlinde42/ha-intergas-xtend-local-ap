@@ -89,7 +89,7 @@
       "Test: the requested URL contains fields= with all 32 ids in order",
       "Verify: pytest tests/test_api.py passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "config_flow",
