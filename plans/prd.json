@@ -273,7 +273,7 @@
       "Verify with stats_values: 6115 -> None (32767), 61ba -> 80",
       "Verify with stats_values_standby against the screenshot: 6115 -> 100.0, 61ba -> 80"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

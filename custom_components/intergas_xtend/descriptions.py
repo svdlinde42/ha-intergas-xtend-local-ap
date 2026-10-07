@@ -15,9 +15,12 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
     UnitOfPower,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfVolume,
     UnitOfVolumeFlowRate,
 )
 
@@ -112,8 +115,24 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     # Tapwater (Xtore)
     temperature("610b", "dhw_temperature"),
     temperature("61eb", "dhw_setpoint"),
-    XtendSensorDescription(key="6115"),
-    XtendSensorDescription(key="61ba"),
+    # Available hot water in 0.01 % (10000 = 100 %); 32767 while unknown.
+    XtendSensorDescription(
+        key="6115",
+        translation_key="dhw_available",
+        factor=0.01,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
+    # Xtore tank size in liters: a fixed property, so diagnostic and no
+    # state class.
+    XtendSensorDescription(
+        key="61ba",
+        translation_key="dhw_volume",
+        factor=1,
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        device_class=SensorDeviceClass.VOLUME_STORAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     temperature("620f", "aux1_temperature"),
     temperature("6206", "aux2_temperature"),
     # Ruimte en buiten

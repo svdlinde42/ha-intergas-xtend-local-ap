@@ -16,11 +16,14 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    PERCENTAGE,
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
+    EntityCategory,
     UnitOfPower,
     UnitOfPressure,
     UnitOfTemperature,
+    UnitOfVolume,
     UnitOfVolumeFlowRate,
 )
 from homeassistant.core import HomeAssistant
@@ -198,15 +201,16 @@ async def test_states_follow_the_payload(
         assert state is not None
         return state.state
 
-    # Temperatures carry factor 0.01; 6115 has no factor yet (DHW item).
+    # Temperatures and the DHW percentage carry factor 0.01.
     assert state_of("79b3") == "26.41"
     assert state_of("47e0") == "V1.20-"
     assert state_of("6206") == STATE_UNKNOWN
+    assert state_of("6115") == STATE_UNKNOWN
 
     with patch(GET_STATS, return_value=stats_payload_standby):
         await scheduled_poll(hass, entry.runtime_data)
     assert state_of("79b3") == "22.62"
-    assert state_of("6115") == "10000"
+    assert state_of("6115") == "100.0"
 
 
 async def test_sensors_go_unavailable_on_failure_and_back_on_success(
@@ -462,3 +466,80 @@ async def test_flow_and_pressure_states_have_unit_and_classes(
     assert pressure.attributes["unit_of_measurement"] == "bar"
     assert pressure.attributes["device_class"] == "pressure"
     assert pressure.attributes["state_class"] == "measurement"
+
+
+# Domestic hot water (Xtore) sensors (entities item).
+def test_dhw_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+
+    available = by_key["6115"]
+    assert available.translation_key == "dhw_available"
+    assert available.factor == 0.01
+    assert available.native_unit_of_measurement == PERCENTAGE
+    assert available.device_class is None
+    assert available.state_class == SensorStateClass.MEASUREMENT
+    assert available.entity_category is None
+    assert available.none_values == frozenset({32767})
+
+    volume = by_key["61ba"]
+    assert volume.translation_key == "dhw_volume"
+    assert volume.factor == 1
+    assert volume.native_unit_of_measurement == UnitOfVolume.LITERS
+    assert volume.device_class == SensorDeviceClass.VOLUME_STORAGE
+    assert volume.state_class is None
+    assert volume.entity_category == EntityCategory.DIAGNOSTIC
+    assert volume.none_values == frozenset({32767})
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "key", "expected"),
+    [
+        # Verify step, first capture: 6115 is 32767 (not available).
+        ("stats_payload", "6115", None),
+        ("stats_payload", "61ba", 80),
+        # Verify step, standby capture against the summary screenshot (DHW 100 %).
+        ("stats_payload_standby", "6115", 100.0),
+        ("stats_payload_standby", "61ba", 80),
+    ],
+)
+def test_dhw_values_from_the_captures(
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+    key: str,
+    expected: float | None,
+) -> None:
+    payload: dict[str, int | str] = request.getfixturevalue(fixture_name)
+    value = make_sensor({d.key: d for d in SENSORS}[key], payload).native_value
+    assert value == expected
+    # The percentage is a float; the volume stays an integer number of liters.
+    assert type(value) is type(expected)
+
+
+async def test_dhw_states_have_unit_and_category(
+    hass: HomeAssistant, stats_payload_standby: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_standby)
+    entity_registry = er.async_get(hass)
+
+    def entry_and_state(key: str):
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return entity_registry.async_get(entity_id), state
+
+    available_entry, available = entry_and_state("6115")
+    assert available.state == "100.0"
+    assert available.attributes["unit_of_measurement"] == "%"
+    assert "device_class" not in available.attributes
+    assert available.attributes["state_class"] == "measurement"
+    assert available_entry.entity_category is None
+
+    volume_entry, volume = entry_and_state("61ba")
+    assert volume.state == "80"
+    assert volume.attributes["unit_of_measurement"] == "L"
+    assert volume.attributes["device_class"] == "volume_storage"
+    assert "state_class" not in volume.attributes
+    assert volume_entry.entity_category == EntityCategory.DIAGNOSTIC
