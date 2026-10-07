@@ -87,7 +87,8 @@ mark as diagnostic rather than inventing semantics.
 ## Commands
 
 Home Assistant core runs on Linux only (it imports `fcntl` and `resource`), and current
-releases need Python 3.14. On Windows run everything inside WSL (`Ubuntu-24.04`); CI runs on
+releases need Python 3.14. The minimum supported Home Assistant is 2025.11.0 (`hacs.json`),
+the first release that runs on Python 3.14 (decided 2026-10-07). On Windows run everything inside WSL (`Ubuntu-24.04`); CI runs on
 `ubuntu-latest`. The venv lives in the WSL home directory because a venv on the NTFS mount
 is slow. Checked 2026-10-07 with homeassistant 2026.9.4 and
 pytest-homeassistant-custom-component 0.13.367.

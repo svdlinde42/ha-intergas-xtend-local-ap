@@ -16,7 +16,8 @@ venv/
 .coverage
 htmlcov/
 
-# Editors and OS
+# Editors, agents and OS
+.claude/settings.local.json
 .vscode/
 .idea/
 .DS_Store

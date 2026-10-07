@@ -422,6 +422,7 @@
       "Add section Access point timeout: the AP switches off after about 15 minutes without requests; polling keeps it alive; when unreachable the integration backs off to at most 5 minutes; how to recover: re-enable the AP, reconnect Wi-Fi on the HA host if needed, press 'Poll now'",
       "Add section Entities: table of the 32 sensors with unit and whether they are enabled by default; explain that the notification and lockout code sensors carry description and cause_solution attributes in Dutch, taken from the manual (link docs/fault-codes.md)",
       "Add note: the unique id is the host; changing the IP creates a new entry",
+      "Add note: minimum Home Assistant 2025.11.0, the first release that runs on Python 3.14 (hacs.json, decided 2026-10-07)",
       "Verify: README has these five sections"
     ],
     "passes": false
