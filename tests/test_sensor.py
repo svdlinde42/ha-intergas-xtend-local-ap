@@ -925,3 +925,73 @@ async def test_raw_sensors_are_disabled_diagnostics(
     assert "unit_of_measurement" not in state.attributes
     assert "device_class" not in state.attributes
     assert "state_class" not in state.attributes
+
+
+def state_by_unique_id(hass: HomeAssistant, key: str):
+    entity_id = er.async_get(hass).async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+    )
+    assert entity_id is not None, key
+    state = hass.states.get(entity_id)
+    assert state is not None, key
+    return state
+
+
+async def test_room_temperature_entity_id_state_and_unit(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload)
+    state = hass.states.get("sensor.intergas_xtend_room_temperature")
+    assert state is not None
+    assert state.state == "26.41"
+    assert state.attributes["unit_of_measurement"] == "°C"
+
+
+async def test_standby_states_match_the_summary_page(
+    hass: HomeAssistant, stats_payload_standby: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_standby)
+    expected = {
+        "79b3": "22.62",  # room temperature
+        "62d1": "16.17",  # outside temperature
+        "7ed3": "1.85",  # CH water pressure
+        "629c": "15.03",  # CH water flow
+        "50f2": "7",  # retrieved power
+        "6115": "100.0",  # DHW available
+    }
+    for key, value in expected.items():
+        assert state_by_unique_id(hass, key).state == value, key
+
+
+async def test_unavailable_value_and_empty_notification_are_unknown(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload)
+    assert state_by_unique_id(hass, "6206").state == STATE_UNKNOWN
+    notification = state_by_unique_id(hass, "7940")
+    assert notification.state == STATE_UNKNOWN
+    assert notification.attributes["description"] is None
+    assert notification.attributes["cause_solution"] == []
+
+
+async def test_n095_state_and_attributes(
+    hass: HomeAssistant, stats_payload_n095: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_n095)
+    notification = state_by_unique_id(hass, "7940")
+    assert notification.state == "n095"
+    assert notification.attributes["description"] == "Probleem met driewegklep."
+    assert len(notification.attributes["cause_solution"]) == 4
+
+
+async def test_32_sensors_and_1_button_are_registered(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    entry = await setup_entry(hass, stats_payload)
+    domains = [
+        e.domain
+        for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
+    ]
+    assert domains.count(SENSOR_DOMAIN) == 32
+    assert domains.count("button") == 1
+    assert len(domains) == 33

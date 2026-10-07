@@ -380,7 +380,7 @@
       "Test: exactly 32 sensor entities and 1 button entity are registered",
       "Verify: pytest tests/test_sensor.py passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "tooling",
