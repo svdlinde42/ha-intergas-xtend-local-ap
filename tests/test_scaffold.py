@@ -368,3 +368,32 @@ def test_readme_has_the_required_sections_and_lists_every_sensor() -> None:
         assert name in rows, name
         enabled = rows[name].startswith("yes")
         assert enabled == description.entity_registry_enabled_default, name
+
+
+def test_readme_lists_derived_and_binary_sensors() -> None:
+    from custom_components.intergas_xtend.binary_sensor import BINARY_SENSORS
+    from custom_components.intergas_xtend.descriptions import DERIVED_SENSORS
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    entity = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))[
+        "entity"
+    ]
+    rows = {
+        line.split("|")[1].strip(): line.split("|")[3].strip()
+        for line in readme.splitlines()
+        if line.startswith("| ") and line.count("|") == 4
+    }
+    for platform, descriptions in (
+        ("sensor", DERIVED_SENSORS),
+        ("binary_sensor", BINARY_SENSORS),
+    ):
+        for description in descriptions:
+            name = entity[platform][description.translation_key]["name"]
+            assert name in rows, name
+            enabled = rows[name].startswith("yes")
+            assert enabled == description.entity_registry_enabled_default, name
+    assert "Heat demand status" not in readme
+    assert "57 sensors" in readme
+    assert "7 binary sensors" in readme
+    assert "Energy dashboard" in readme
+    assert "docs/operating-modes.json" in readme

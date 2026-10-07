@@ -51,8 +51,8 @@ Field meanings, scale factors and units come from [docs/stats-mapping.md](docs/s
 There is one button, **Poll now** (diagnostic). It is always available, also when the Xtend is
 unreachable.
 
-There are 55 sensors. A value of 32767 from the device means "not available" and shows as
-unknown.
+There are 57 sensors: one for each of the 55 polled fields and 2 COP totals that the integration
+calculates. A value of 32767 from the device means "not available" and shows as unknown.
 
 | Sensor | Unit | Enabled by default |
 | --- | --- | --- |
@@ -111,9 +111,32 @@ unknown.
 | Boiler runtime CH | h | yes (diagnostic) |
 | Boiler runtime DHW | h | yes (diagnostic) |
 | Boiler flame loss | none | yes (diagnostic) |
+| COP total CH | none | yes |
+| COP total DHW | none | yes |
 
 The raw sensors show the number from the device without any meaning. Their meaning is not known
 yet. You can enable them in the entity registry.
+
+The states of **Operating mode** and **DHW state** are translated in English and Dutch. The
+translations are our own; the codes come from the owner's mapping
+([docs/operating-modes.json](docs/operating-modes.json)).
+
+The energy totals are whole kWh since commissioning and can be used in the Home Assistant
+Energy dashboard. **COP total CH** and **COP total DHW** are energy generated divided by energy used,
+the same as on the statistics page of the Xtend.
+
+There are 7 binary sensors. Each one reads one status bit of a polled field
+([docs/xtend-enums.json](docs/xtend-enums.json)).
+
+| Binary sensor | Device class | Enabled by default |
+| --- | --- | --- |
+| Compressor running | running | yes |
+| CH pump | running | yes |
+| DHW pump | running | yes |
+| Silent mode | none | yes |
+| Heat demand heat pump | heat | yes |
+| Heat demand boiler | heat | yes |
+| Defrost active | none | yes |
 
 ### Notification and lockout codes
 

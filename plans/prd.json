@@ -479,7 +479,7 @@
       "Add one sentence: the energy totals are whole kWh since commissioning and can be used in the Home Assistant Energy dashboard",
       "Verify: README has no 'Heat demand status' text left and the English name of every new translation_key appears in README.md"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "research",
