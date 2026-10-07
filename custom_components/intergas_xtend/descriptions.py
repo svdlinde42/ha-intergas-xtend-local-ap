@@ -14,7 +14,12 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.const import UnitOfPower, UnitOfTemperature
+from homeassistant.const import (
+    UnitOfPower,
+    UnitOfPressure,
+    UnitOfTemperature,
+    UnitOfVolumeFlowRate,
+)
 
 from .const import FIRMWARE_FIELD, NOT_AVAILABLE
 
@@ -84,12 +89,26 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:heat-pump",
     ),
-    # CV-water
-    XtendSensorDescription(key="629c"),
+    # CV-water: flow in 0.01 l/min and pressure in 0.01 bar (docs/stats-mapping.md).
+    XtendSensorDescription(
+        key="629c",
+        translation_key="ch_flow",
+        factor=0.01,
+        native_unit_of_measurement=UnitOfVolumeFlowRate.LITERS_PER_MINUTE,
+        device_class=SensorDeviceClass.VOLUME_FLOW_RATE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     temperature("6280", "ch_return_temperature"),
     temperature("621d", "ch_supply_temperature"),
     temperature("62ed", "ch_setpoint"),
-    XtendSensorDescription(key="7ed3"),
+    XtendSensorDescription(
+        key="7ed3",
+        translation_key="ch_pressure",
+        factor=0.01,
+        native_unit_of_measurement=UnitOfPressure.BAR,
+        device_class=SensorDeviceClass.PRESSURE,
+        state_class=SensorStateClass.MEASUREMENT,
+    ),
     # Tapwater (Xtore)
     temperature("610b", "dhw_temperature"),
     temperature("61eb", "dhw_setpoint"),

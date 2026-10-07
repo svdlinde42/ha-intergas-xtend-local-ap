@@ -19,7 +19,9 @@ from homeassistant.const import (
     STATE_UNAVAILABLE,
     STATE_UNKNOWN,
     UnitOfPower,
+    UnitOfPressure,
     UnitOfTemperature,
+    UnitOfVolumeFlowRate,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -391,3 +393,72 @@ async def test_power_and_cop_states_have_unit_and_classes(
     assert "device_class" not in cop.attributes
     assert cop.attributes["state_class"] == "measurement"
     assert cop.attributes["icon"] == "mdi:heat-pump"
+
+
+# Flow and pressure sensors (entities item).
+def test_flow_and_pressure_descriptions() -> None:
+    by_key = {d.key: d for d in SENSORS}
+
+    flow = by_key["629c"]
+    assert flow.translation_key == "ch_flow"
+    assert flow.factor == 0.01
+    assert flow.native_unit_of_measurement == UnitOfVolumeFlowRate.LITERS_PER_MINUTE
+    assert flow.device_class == SensorDeviceClass.VOLUME_FLOW_RATE
+    assert flow.state_class == SensorStateClass.MEASUREMENT
+    assert flow.none_values == frozenset({32767})
+
+    pressure = by_key["7ed3"]
+    assert pressure.translation_key == "ch_pressure"
+    assert pressure.factor == 0.01
+    assert pressure.native_unit_of_measurement == UnitOfPressure.BAR
+    assert pressure.device_class == SensorDeviceClass.PRESSURE
+    assert pressure.state_class == SensorStateClass.MEASUREMENT
+    assert pressure.none_values == frozenset({32767})
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "key", "expected"),
+    [
+        # Verify step, first capture.
+        ("stats_payload", "629c", 14.91),
+        ("stats_payload", "7ed3", 2.01),
+        # Verify step, standby capture against the summary screenshot.
+        ("stats_payload_standby", "629c", 15.03),
+        ("stats_payload_standby", "7ed3", 1.85),
+    ],
+)
+def test_flow_and_pressure_values_from_the_captures(
+    request: pytest.FixtureRequest, fixture_name: str, key: str, expected: float
+) -> None:
+    payload: dict[str, int | str] = request.getfixturevalue(fixture_name)
+    value = make_sensor({d.key: d for d in SENSORS}[key], payload).native_value
+    assert value == expected
+    assert type(value) is float
+
+
+async def test_flow_and_pressure_states_have_unit_and_classes(
+    hass: HomeAssistant, stats_payload_standby: dict[str, int | str]
+) -> None:
+    await setup_entry(hass, stats_payload_standby)
+    entity_registry = er.async_get(hass)
+
+    def state_of(key: str):
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return state
+
+    flow = state_of("629c")
+    assert flow.state == "15.03"
+    assert flow.attributes["unit_of_measurement"] == "L/min"
+    assert flow.attributes["device_class"] == "volume_flow_rate"
+    assert flow.attributes["state_class"] == "measurement"
+
+    pressure = state_of("7ed3")
+    assert pressure.state == "1.85"
+    assert pressure.attributes["unit_of_measurement"] == "bar"
+    assert pressure.attributes["device_class"] == "pressure"
+    assert pressure.attributes["state_class"] == "measurement"

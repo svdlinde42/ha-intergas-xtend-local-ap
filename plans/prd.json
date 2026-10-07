@@ -262,7 +262,7 @@
       "Verify with stats_values: 629c -> 14.91, 7ed3 -> 2.01",
       "Verify with stats_values_standby against the screenshot: 629c -> 15.03, 7ed3 -> 1.85"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
