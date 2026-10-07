@@ -123,6 +123,40 @@ def test_strings_json_has_config_flow_texts() -> None:
     assert set(options["step"]["init"]["data"]) == {"scan_interval"}
 
 
+def _key_paths(node: object, prefix: str = "") -> set[str]:
+    """Return every leaf key path of a nested dict, e.g. 'config.step.user.title'."""
+    if not isinstance(node, dict):
+        return {prefix}
+    paths: set[str] = set()
+    for key, value in node.items():
+        paths |= _key_paths(value, f"{prefix}.{key}" if prefix else key)
+    return paths
+
+
+def test_translations_match_strings_json() -> None:
+    # Verify step of the translations item: en.json is a copy of strings.json,
+    # nl.json is valid JSON with the same key structure and no untranslated
+    # English leaf left over (except the leaves that are the same in both).
+    strings = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))
+    en = json.loads(
+        (INTEGRATION / "translations" / "en.json").read_text(encoding="utf-8")
+    )
+    nl = json.loads(
+        (INTEGRATION / "translations" / "nl.json").read_text(encoding="utf-8")
+    )
+    assert en == strings
+    assert _key_paths(nl) == _key_paths(strings)
+    # Dutch texts differ from English, except labels that are identical in
+    # both languages (the only one today is the host field label).
+    same_in_both = {"config.step.user.data.host"}
+    for path in _key_paths(strings) - same_in_both:
+        en_leaf, nl_leaf = strings, nl
+        for part in path.split("."):
+            en_leaf, nl_leaf = en_leaf[part], nl_leaf[part]
+        assert isinstance(nl_leaf, str) and nl_leaf
+        assert nl_leaf != en_leaf, path
+
+
 def test_validate_workflow_has_three_jobs() -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "workflows" / "validate.yml").read_text(encoding="utf-8")

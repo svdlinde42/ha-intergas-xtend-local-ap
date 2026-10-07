@@ -125,7 +125,7 @@
       "Create translations/nl.json with Dutch texts",
       "Verify: both translation files are valid JSON and have the same key structure as strings.json"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "tests",

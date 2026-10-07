@@ -1,0 +1,38 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met de Intergas Xtend",
+        "description": "De Home Assistant-host moet verbonden zijn met het wifi-accesspoint van de Xtend. Het pollen houdt dat accesspoint ook wakker.",
+        "data": {
+          "host": "Host",
+          "scan_interval": "Pollinterval (seconden)"
+        },
+        "data_description": {
+          "host": "IP-adres van de Xtend op zijn eigen accesspoint, meestal 10.20.30.1.",
+          "scan_interval": "Hoe vaak de status wordt gelezen, tussen 5 en 60 seconden."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken met de Xtend. Controleer of het accesspoint aan staat en of deze host ermee verbonden is.",
+      "invalid_response": "Het apparaat antwoordde, maar niet met de verwachte statusgegevens. Controleer de host."
+    },
+    "abort": {
+      "already_configured": "Deze Xtend is al geconfigureerd."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opties Intergas Xtend",
+        "data": {
+          "scan_interval": "Pollinterval (seconden)"
+        },
+        "data_description": {
+          "scan_interval": "Hoe vaak de status wordt gelezen, tussen 5 en 60 seconden. Het pollen houdt het accesspoint ook wakker."
+        }
+      }
+    }
+  }
+}
