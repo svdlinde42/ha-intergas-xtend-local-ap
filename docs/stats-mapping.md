@@ -83,7 +83,7 @@ Mapping van de sleutels uit `GET /api/stats/values?fields=…` (Xtend web-interf
 | Sleutel | API-naam | Omschrijving | Factor | Eenheid | Voorbeeld ruw | Voorbeeld waarde | Bron |
 |---|---|---|---|---|---|---|---|
 | 47e0 | CPUinfo_software_version | Firmwareversie | — | | "V1.20-" | V1.20- | K, J |
-| 7e51 | status_0_heatdemand_status | Bedrijfsmodus (opsomming, 38 codes, zie `docs/operating-modes.json`); geen bitveld; pagina: *Device status* | 1 | | 206 | DHW_LEGIONELLA_PREVENTION | K, E, J, S |
+| 7e51 | status_0_heatdemand_status | Bedrijfsmodus (opsomming, 38 codes, zie `docs/operating-modes.json`; de en/nl-labels daarin zijn onze eigen vertaling, ch_rf en dhw_hreco zijn geraden uit de afkorting (RF, HRECO)); geen bitveld; pagina: *Device status* | 1 | | 206 | DHW_LEGIONELLA_PREVENTION | K, E, J, S |
 
 ## Bitvelden
 

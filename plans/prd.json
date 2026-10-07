@@ -346,7 +346,7 @@
       "Row 7e51 in docs/stats-mapping.md already refers to docs/operating-modes.json. Add to that row that the en/nl labels are our own translation and that ch_rf and dhw_hreco are guesses from the abbreviation (RF, HRECO)",
       "Verify: the JSON has 38 entries, unique codes, unique names; code 126 is standby and code 206 is dhw_legionella_prevention"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

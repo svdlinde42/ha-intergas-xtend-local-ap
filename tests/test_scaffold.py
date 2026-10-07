@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -65,6 +66,25 @@ def test_stats_fields_are_documented_in_mapping() -> None:
     mapping = (ROOT / "docs" / "stats-mapping.md").read_text(encoding="utf-8")
     missing = [f for f in STATS_FIELDS if f not in mapping]
     assert missing == []
+
+
+def test_operating_modes_json_is_complete() -> None:
+    modes = json.loads(
+        (ROOT / "docs" / "operating-modes.json").read_text(encoding="utf-8")
+    )
+    assert len(modes) == 38
+    assert all(set(m) == {"code", "name", "en", "nl"} for m in modes)
+    codes = [m["code"] for m in modes]
+    names = [m["name"] for m in modes]
+    assert len(set(codes)) == 38
+    assert len(set(names)) == 38
+    assert all(isinstance(c, int) and 0 <= c <= 255 for c in codes)
+    # Home Assistant enum states allow only [a-z0-9_].
+    assert all(re.fullmatch(r"[a-z0-9_]+", n) for n in names)
+    assert all(m["en"] and m["nl"] for m in modes)
+    by_code = {m["code"]: m["name"] for m in modes}
+    assert by_code[126] == "standby"
+    assert by_code[206] == "dhw_legionella_prevention"
 
 
 def test_api_module_does_not_import_home_assistant() -> None:
