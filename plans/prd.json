@@ -139,7 +139,7 @@
       "Test: options flow updates scan_interval",
       "Verify: pytest tests/test_config_flow.py passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "coordinator",

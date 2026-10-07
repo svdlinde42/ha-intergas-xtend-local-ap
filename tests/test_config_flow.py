@@ -10,6 +10,10 @@ import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 import voluptuous as vol
 
+from custom_components.intergas_xtend.api import (
+    XtendConnectionError,
+    XtendResponseError,
+)
 from custom_components.intergas_xtend.config_flow import OPTIONS_SCHEMA
 from custom_components.intergas_xtend.const import DOMAIN
 from custom_components.intergas_xtend.coordinator import scan_interval_from_entry
@@ -38,6 +42,78 @@ async def test_user_flow_with_defaults_creates_entry(
     assert result["title"] == "Intergas Xtend (10.20.30.1)"
     assert result["data"] == {CONF_HOST: "10.20.30.1", CONF_SCAN_INTERVAL: 10}
     assert result["result"].unique_id == "10.20.30.1"
+
+
+@pytest.mark.parametrize(
+    ("exception", "error"),
+    [
+        (XtendConnectionError("connection refused"), "cannot_connect"),
+        (XtendResponseError("HTTP 500"), "invalid_response"),
+    ],
+)
+async def test_user_flow_shows_error_and_recovers(
+    hass: HomeAssistant,
+    stats_payload: dict[str, int | str],
+    exception: Exception,
+    error: str,
+) -> None:
+    # A failed GET shows the form again with the error and the entered values;
+    # the same flow then succeeds once the device answers.
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+
+    with patch(GET_STATS, side_effect=exception) as get_stats:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: "10.20.30.5", CONF_SCAN_INTERVAL: 20}
+        )
+        await hass.async_block_till_done()
+
+    assert get_stats.call_count == 1
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": error}
+    suggested = {
+        key.schema: key.description["suggested_value"]
+        for key in result["data_schema"].schema
+    }
+    assert suggested == {CONF_HOST: "10.20.30.5", CONF_SCAN_INTERVAL: 20}
+    assert hass.config_entries.async_entries(DOMAIN) == []
+
+    with patch(GET_STATS, return_value=stats_payload):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: "10.20.30.5", CONF_SCAN_INTERVAL: 20}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"] == {CONF_HOST: "10.20.30.5", CONF_SCAN_INTERVAL: 20}
+
+
+async def test_user_flow_aborts_when_host_is_already_configured(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    existing = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="10.20.30.1",
+        data={CONF_HOST: "10.20.30.1", CONF_SCAN_INTERVAL: 10},
+    )
+    existing.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    with patch(GET_STATS, return_value=stats_payload) as get_stats:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], {CONF_HOST: " 10.20.30.1 ", CONF_SCAN_INTERVAL: 10}
+        )
+        await hass.async_block_till_done()
+
+    # The duplicate is detected before any request goes to the device.
+    assert get_stats.call_count == 0
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 1
 
 
 def test_scan_interval_from_entry_prefers_options() -> None:
