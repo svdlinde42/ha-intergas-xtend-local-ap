@@ -13,6 +13,17 @@ DEFAULT_SCAN_INTERVAL = 10
 MIN_SCAN_INTERVAL = 5
 MAX_SCAN_INTERVAL = 60
 
+# Back-off when the Xtend is unreachable. Once the access point has switched
+# itself off, polling cannot bring it back, so hammering it has no value.
+# From the BACKOFF_START_FAILURES-th consecutive failure on the interval is
+#   min(scan_interval * BACKOFF_FACTOR ** (failures - BACKOFF_START_FAILURES + 1),
+#       BACKOFF_MAX_SECONDS)
+# With scan_interval 10 the intervals after failures 1..7 are
+# 10, 10, 20, 40, 80, 160, 300. One successful poll restores scan_interval.
+BACKOFF_START_FAILURES = 3
+BACKOFF_FACTOR = 2
+BACKOFF_MAX_SECONDS = 300
+
 # REST status endpoint of the Xtend. Captured from the device on 2026-10-06
 # (firmware V1.20-), not guessed. Request:
 #   GET http://<host>/api/stats/values?fields=<comma-separated hex ids>

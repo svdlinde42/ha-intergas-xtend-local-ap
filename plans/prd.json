@@ -165,7 +165,7 @@
       "Log one warning when backoff starts and one info line when it ends; do not log every failed poll above debug",
       "Verify: with scan_interval 10 the intervals after failures 1..7 are 10, 10, 20, 40, 80, 160, 300"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "coordinator",
