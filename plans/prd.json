@@ -331,7 +331,7 @@
       "Source of the names: the Xtend summary page ('Xtend summary' / 'Xtend overzicht'); fields not on that page use docs/stats-mapping.md",
       "Verify: every translation_key in SENSORS has a name in all three files and the key sets are identical"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "research",

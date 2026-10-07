@@ -40,6 +40,104 @@
       "poll_now": {
         "name": "Nu pollen"
       }
+    },
+    "sensor": {
+      "room_temperature": {
+        "name": "Kamertemperatuur"
+      },
+      "room_target_temperature": {
+        "name": "Kamer doeltemperatuur"
+      },
+      "outside_temperature": {
+        "name": "Buitentemperatuur"
+      },
+      "ch_return_temperature": {
+        "name": "Cv-water retour"
+      },
+      "ch_supply_temperature": {
+        "name": "Cv-water aanvoer"
+      },
+      "ch_setpoint": {
+        "name": "Cv-water streefwaarde"
+      },
+      "aux1_temperature": {
+        "name": "Aux 1 temperatuur"
+      },
+      "aux2_temperature": {
+        "name": "Aux 2 temperatuur"
+      },
+      "dhw_temperature": {
+        "name": "Tapwater werkelijk"
+      },
+      "dhw_setpoint": {
+        "name": "Tapwater streefwaarde"
+      },
+      "heat_pump_power": {
+        "name": "Vermogen warmtepomp"
+      },
+      "boiler_power": {
+        "name": "Vermogen cv-ketel"
+      },
+      "total_thermal_power": {
+        "name": "Totaal thermisch vermogen"
+      },
+      "retrieved_power": {
+        "name": "Opgenomen vermogen"
+      },
+      "cop": {
+        "name": "COP"
+      },
+      "ch_flow": {
+        "name": "Cv-water debiet"
+      },
+      "ch_pressure": {
+        "name": "Cv-water druk"
+      },
+      "dhw_available": {
+        "name": "Tapwater beschikbaar"
+      },
+      "dhw_volume": {
+        "name": "Tapwater inhoud"
+      },
+      "notification_code": {
+        "name": "Notificatiecode"
+      },
+      "lockout_code": {
+        "name": "Lockout-code"
+      },
+      "boiler_fault_code": {
+        "name": "Foutcode cv-ketel"
+      },
+      "firmware_version": {
+        "name": "Firmwareversie"
+      },
+      "heat_demand_status": {
+        "name": "Warmtevraagstatus (ruw)"
+      },
+      "burner_status": {
+        "name": "Branderstatus (ruw)"
+      },
+      "status_flags": {
+        "name": "Statusvlaggen (ruw)"
+      },
+      "system_io": {
+        "name": "Systeem-I/O (ruw)"
+      },
+      "bivalent_service_flags": {
+        "name": "Vlaggen hybride regeling (ruw)"
+      },
+      "raw_6101": {
+        "name": "Ruw 6101"
+      },
+      "raw_6117": {
+        "name": "Ruw 6117"
+      },
+      "raw_7774": {
+        "name": "Ruw 7774"
+      },
+      "raw_77de": {
+        "name": "Ruw 77de"
+      }
     }
   },
   "issues": {

@@ -172,14 +172,50 @@ def test_translations_match_strings_json() -> None:
     assert en == strings
     assert _key_paths(nl) == _key_paths(strings)
     # Dutch texts differ from English, except labels that are identical in
-    # both languages (the only one today is the host field label).
-    same_in_both = {"config.step.user.data.host"}
+    # both languages (the host field label and the COP sensor name).
+    same_in_both = {"config.step.user.data.host", "entity.sensor.cop.name"}
     for path in _key_paths(strings) - same_in_both:
         en_leaf, nl_leaf = strings, nl
         for part in path.split("."):
             en_leaf, nl_leaf = en_leaf[part], nl_leaf[part]
         assert isinstance(nl_leaf, str) and nl_leaf
         assert nl_leaf != en_leaf, path
+
+
+def test_every_sensor_translation_key_has_a_name_in_all_files() -> None:
+    # Verify step of the entity names item: every translation_key in SENSORS has
+    # a name in strings.json, en.json and nl.json, and the key sets are identical.
+    from custom_components.intergas_xtend.descriptions import SENSORS
+
+    keys = {d.translation_key for d in SENSORS}
+    assert len(keys) == len(SENSORS) == 32
+    files = {
+        "strings": INTEGRATION / "strings.json",
+        "en": INTEGRATION / "translations" / "en.json",
+        "nl": INTEGRATION / "translations" / "nl.json",
+    }
+    for label, path in files.items():
+        sensors = json.loads(path.read_text(encoding="utf-8"))["entity"]["sensor"]
+        assert set(sensors) == keys, label
+        for key, value in sensors.items():
+            assert isinstance(value["name"], str) and value["name"], (label, key)
+
+
+def test_sensor_names_follow_the_prd() -> None:
+    # Spot checks against the names listed in plans/prd.json.
+    en = json.loads(
+        (INTEGRATION / "translations" / "en.json").read_text(encoding="utf-8")
+    )["entity"]["sensor"]
+    nl = json.loads(
+        (INTEGRATION / "translations" / "nl.json").read_text(encoding="utf-8")
+    )["entity"]["sensor"]
+    assert en["room_temperature"]["name"] == "Room temperature"
+    assert nl["room_temperature"]["name"] == "Kamertemperatuur"
+    assert en["dhw_temperature"]["name"] == "DHW actual"
+    assert nl["dhw_temperature"]["name"] == "Tapwater werkelijk"
+    assert en["bivalent_service_flags"]["name"] == "Bivalent service flags (raw)"
+    assert nl["bivalent_service_flags"]["name"] == "Vlaggen hybride regeling (ruw)"
+    assert en["cop"]["name"] == nl["cop"]["name"] == "COP"
 
 
 def test_validate_workflow_has_three_jobs() -> None:

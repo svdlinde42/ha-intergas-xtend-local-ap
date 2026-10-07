@@ -40,6 +40,104 @@
       "poll_now": {
         "name": "Poll now"
       }
+    },
+    "sensor": {
+      "room_temperature": {
+        "name": "Room temperature"
+      },
+      "room_target_temperature": {
+        "name": "Room target temperature"
+      },
+      "outside_temperature": {
+        "name": "Outside temperature"
+      },
+      "ch_return_temperature": {
+        "name": "CH water return"
+      },
+      "ch_supply_temperature": {
+        "name": "CH water supply"
+      },
+      "ch_setpoint": {
+        "name": "CH water setpoint"
+      },
+      "aux1_temperature": {
+        "name": "Aux 1 temperature"
+      },
+      "aux2_temperature": {
+        "name": "Aux 2 temperature"
+      },
+      "dhw_temperature": {
+        "name": "DHW actual"
+      },
+      "dhw_setpoint": {
+        "name": "DHW setpoint"
+      },
+      "heat_pump_power": {
+        "name": "Heat pump power"
+      },
+      "boiler_power": {
+        "name": "Boiler power"
+      },
+      "total_thermal_power": {
+        "name": "Total thermal power"
+      },
+      "retrieved_power": {
+        "name": "Retrieved power"
+      },
+      "cop": {
+        "name": "COP"
+      },
+      "ch_flow": {
+        "name": "CH water flow"
+      },
+      "ch_pressure": {
+        "name": "CH water pressure"
+      },
+      "dhw_available": {
+        "name": "DHW available"
+      },
+      "dhw_volume": {
+        "name": "DHW volume"
+      },
+      "notification_code": {
+        "name": "Notification code"
+      },
+      "lockout_code": {
+        "name": "Lockout code"
+      },
+      "boiler_fault_code": {
+        "name": "Boiler fault code"
+      },
+      "firmware_version": {
+        "name": "Firmware version"
+      },
+      "heat_demand_status": {
+        "name": "Heat demand status (raw)"
+      },
+      "burner_status": {
+        "name": "Burner status (raw)"
+      },
+      "status_flags": {
+        "name": "Status flags (raw)"
+      },
+      "system_io": {
+        "name": "System I/O (raw)"
+      },
+      "bivalent_service_flags": {
+        "name": "Bivalent service flags (raw)"
+      },
+      "raw_6101": {
+        "name": "Raw 6101"
+      },
+      "raw_6117": {
+        "name": "Raw 6117"
+      },
+      "raw_7774": {
+        "name": "Raw 7774"
+      },
+      "raw_77de": {
+        "name": "Raw 77de"
+      }
     }
   },
   "issues": {
