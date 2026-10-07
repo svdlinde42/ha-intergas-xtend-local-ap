@@ -21,5 +21,18 @@
     "abort": {
       "already_configured": "This Xtend is already configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Intergas Xtend options",
+        "data": {
+          "scan_interval": "Poll interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "How often the status is read, between 5 and 60 seconds. Polling also keeps the access point awake."
+        }
+      }
+    }
   }
 }

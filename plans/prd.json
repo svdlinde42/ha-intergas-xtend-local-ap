@@ -114,7 +114,7 @@
       "Coordinator reads scan_interval from entry.options first, then entry.data",
       "Verify: changing the option and saving triggers a reload and the new interval is in use"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "config_flow",

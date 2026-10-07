@@ -119,6 +119,8 @@ def test_strings_json_has_config_flow_texts() -> None:
     assert set(config["step"]["user"]["data"]) == {"host", "scan_interval"}
     assert {"cannot_connect", "invalid_response"} <= set(config["error"])
     assert "already_configured" in config["abort"]
+    options = strings["options"]
+    assert set(options["step"]["init"]["data"]) == {"scan_interval"}
 
 
 def test_validate_workflow_has_three_jobs() -> None:
