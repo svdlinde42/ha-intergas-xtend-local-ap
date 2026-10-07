@@ -410,7 +410,7 @@
       "Tests: create tests/test_binary_sensor.py with the Verify values below and a check that every translation_key has a name in all three files; update the entity count test in tests/test_sensor.py (7 binary sensors)",
       "Verify: pytest passes. Verify with stats_values_n095: compressor_running on, heat_demand_heat_pump on, heat_demand_boiler off; with stats_values: heat_demand_boiler on, compressor_running off; with stats_values_standby: compressor_running, silent_mode, heat_demand_heat_pump, heat_demand_boiler and defrost_active off, ch_pump on (77d2 = 17102 has bit 1 set in standby)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

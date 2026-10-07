@@ -1057,7 +1057,7 @@ async def test_n095_state_and_attributes(
     assert len(notification.attributes["cause_solution"]) == 4
 
 
-async def test_32_sensors_and_1_button_are_registered(
+async def test_32_sensors_7_binary_sensors_and_1_button_are_registered(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:
     entry = await setup_entry(hass, stats_payload)
@@ -1066,8 +1066,9 @@ async def test_32_sensors_and_1_button_are_registered(
         for e in er.async_entries_for_config_entry(er.async_get(hass), entry.entry_id)
     ]
     assert domains.count(SENSOR_DOMAIN) == 32
+    assert domains.count("binary_sensor") == 7
     assert domains.count("button") == 1
-    assert len(domains) == 33
+    assert len(domains) == 40
 
 
 # Operating mode (field 7e51): an enum from docs/operating-modes.json.

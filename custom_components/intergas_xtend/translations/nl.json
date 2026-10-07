@@ -36,6 +36,29 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "compressor_running": {
+        "name": "Compressor actief"
+      },
+      "ch_pump": {
+        "name": "Cv-pomp"
+      },
+      "dhw_pump": {
+        "name": "Tapwaterpomp"
+      },
+      "silent_mode": {
+        "name": "Stille modus"
+      },
+      "heat_demand_heat_pump": {
+        "name": "Warmtevraag warmtepomp"
+      },
+      "heat_demand_boiler": {
+        "name": "Warmtevraag ketel"
+      },
+      "defrost_active": {
+        "name": "Ontdooien actief"
+      }
+    },
     "button": {
       "poll_now": {
         "name": "Nu pollen"

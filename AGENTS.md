@@ -77,6 +77,7 @@ custom_components/intergas_xtend/
   operating_modes.py # 7e51 operating mode table, generated from
                      # docs/operating-modes.json by scripts/gen_operating_modes_py.py
   sensor.py, button.py                 # phase 1 (button = "Poll now")
+  binary_sensor.py   # phase 1: status bits of 77d2, 77c3, f9f2 (docs/xtend-enums.json)
   number.py, select.py, switch.py      # phase 2
   manifest.json, strings.json, translations/
 hacs.json

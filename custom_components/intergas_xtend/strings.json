@@ -36,6 +36,29 @@
     }
   },
   "entity": {
+    "binary_sensor": {
+      "compressor_running": {
+        "name": "Compressor running"
+      },
+      "ch_pump": {
+        "name": "CH pump"
+      },
+      "dhw_pump": {
+        "name": "DHW pump"
+      },
+      "silent_mode": {
+        "name": "Silent mode"
+      },
+      "heat_demand_heat_pump": {
+        "name": "Heat demand heat pump"
+      },
+      "heat_demand_boiler": {
+        "name": "Heat demand boiler"
+      },
+      "defrost_active": {
+        "name": "Defrost active"
+      }
+    },
     "button": {
       "poll_now": {
         "name": "Poll now"

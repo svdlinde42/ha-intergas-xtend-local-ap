@@ -15,8 +15,9 @@ from .api import XtendApi
 from .const import DOMAIN
 from .coordinator import XtendConfigEntry, XtendCoordinator, issue_id_for_host
 
-# Phase 1 is read-only: sensors plus the "Poll now" button, which only polls.
-PLATFORMS: list[Platform] = [Platform.BUTTON, Platform.SENSOR]
+# Phase 1 is read-only: sensors, binary sensors (status bits) plus the
+# "Poll now" button, which only polls.
+PLATFORMS: list[Platform] = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: XtendConfigEntry) -> bool:
