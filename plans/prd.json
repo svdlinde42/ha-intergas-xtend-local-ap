@@ -343,7 +343,7 @@
       "More rows: 230 starting_ch | Starting heating | Verwarming starten; 231 postrun_ch | Heating post-run | Nalooptijd verwarming; 126 standby | Standby | Stand-by; 127 switched_off | Switched off | Uitgeschakeld; 37 ch_rf | Heating (RF) | Verwarming (RF); 205 dhw_hreco | DHW heat recovery | Tapwater warmteterugwinning; 206 dhw_legionella_prevention | Legionella prevention | Legionellapreventie; 207 dhw_wait | Domestic hot water, waiting | Tapwater, wachten",
       "Last rows: 117 starting_cooling | Starting cooling | Koeling starten; 118 cooling | Cooling | Koeling; 119 cooling_wait | Cooling, waiting | Koeling, wachten; 120 cooling_blocked_by_sgready | Cooling blocked by SG Ready | Koeling geblokkeerd door SG Ready; 121 cooling_waiting_for_flow | Cooling, waiting for flow | Koeling, wachten op debiet; 122 cooling_condense_protection | Cooling, condensation protection | Koeling, condensbeveiliging; 123 cooling_floor_thermostat_off | Cooling, floor thermostat off | Koeling, vloerthermostaat uit; 189 postrun_cooling | Cooling post-run | Nalooptijd koeling",
       "Names are lowercase because Home Assistant enum states allow only [a-z0-9_]. The owner's original names are the upper-case versions of these",
-      "In docs/stats-mapping.md change row 7e51 to: Bedrijfsmodus (opsomming), source E, and refer to docs/operating-modes.json. State that the en/nl labels are our own translation and that ch_rf and dhw_hreco are guesses from the abbreviation (RF, HRECO)",
+      "Row 7e51 in docs/stats-mapping.md already refers to docs/operating-modes.json. Add to that row that the en/nl labels are our own translation and that ch_rf and dhw_hreco are guesses from the abbreviation (RF, HRECO)",
       "Verify: the JSON has 38 entries, unique codes, unique names; code 126 is standby and code 206 is dhw_legionella_prevention"
     ],
     "passes": false
@@ -355,36 +355,23 @@
       "Add value_map: Mapping[int, str] | None = None to XtendSensorDescription in descriptions.py and document it in the class docstring",
       "In XtendSensor.native_value: after the none_values check, if value_map is set return value_map.get(raw) (None when the code is unknown; do not invent a name)",
       "Unknown codes must not raise and must not stop the update of other sensors",
+      "Add the test to tests/test_sensor.py",
       "Verify: a test description with value_map {1: 'a'} gives 'a' for raw 1 and None for raw 2 and for 32767"
     ],
     "passes": false
   },
   {
     "category": "entities",
-    "description": "Field 7e51 becomes the Operating mode enum sensor",
+    "description": "Field 7e51 becomes the translated Operating mode enum sensor, with tests",
     "steps": [
+      "Depends on the operating mode docs item (docs/operating-modes.json) and the enum support item (value_map in descriptions.py)",
+      "One item because tests/test_scaffold.py requires a name for every translation_key: the sensor, its translations and its tests must land in one commit",
       "Add custom_components/intergas_xtend/operating_modes.py with OPERATING_MODES: dict[int, str] (code -> name). No Home Assistant imports. Comment: 'Source: docs/operating-modes.json. Regenerate, do not edit by hand.' Add scripts/gen_operating_modes_py.py in the style of scripts/gen_codes_py.py",
       "In descriptions.py replace raw('7e51', 'heat_demand_status') with a description: key 7e51, translation_key operating_mode, device_class SensorDeviceClass.ENUM, options = sorted(OPERATING_MODES.values()), value_map = OPERATING_MODES, no entity_category, enabled by default",
       "Add attribute code (the raw integer) to the state attributes of this sensor; keep the attribute keys the same at all times",
       "unique_id stays {host}_7e51, so existing installs keep their history and entity_id",
-      "Verify with stats_values_standby: state 'standby', code 126. Verify with stats_values and stats_values_n095 (7e51 = 206): state 'dhw_legionella_prevention' (fits the capture: DHW setpoint 65 °C, heat pump at 5000 W). Verify raw 999: state 'unknown'"
-    ],
-    "passes": false
-  },
-  {
-    "category": "entities",
-    "description": "Operating mode name and states are translated in English and Dutch",
-    "steps": [
       "In strings.json and translations/en.json rename entity.sensor.heat_demand_status to operating_mode with name 'Operating mode' and add a state map with the en label of every entry in docs/operating-modes.json",
       "In translations/nl.json do the same with name 'Bedrijfsmodus' and the nl labels",
-      "Verify: every option of the sensor has a state in all three files, key sets are identical, and no key heat_demand_status is left"
-    ],
-    "passes": false
-  },
-  {
-    "category": "tests",
-    "description": "Operating mode is covered by tests",
-    "steps": [
       "Update tests/test_sensor.py (key map near line 830 and the raw-value check near line 870) and tests/test_descriptions.py (7e51 leaves the raw/diagnostic set near line 42)",
       "Test: stats_payload_standby gives state 'standby' and attribute code 126",
       "Test: stats_payload and stats_payload_n095 give state 'dhw_legionella_prevention'",
@@ -392,17 +379,8 @@
       "Test: OPERATING_MODES matches docs/operating-modes.json (38 entries) and the sensor options equal the set of its values",
       "Test: the sensor is enabled by default and has no entity_category",
       "Test: name and all states exist in strings.json, en.json and nl.json",
-      "Verify: pytest passes"
-    ],
-    "passes": false
-  },
-  {
-    "category": "docs",
-    "description": "README lists the Operating mode sensor",
-    "steps": [
-      "Replace the row 'Heat demand status (raw)' in the Entities table of README.md with 'Operating mode | enum | yes'",
-      "Add one sentence: the states are translated in English and Dutch; the translations are our own, the codes come from the owner's mapping (docs/operating-modes.json)",
-      "Verify: README has no 'Heat demand status' text left"
+      "Verify with stats_values_standby: state 'standby', code 126. Verify with stats_values and stats_values_n095 (7e51 = 206): state 'dhw_legionella_prevention' (fits the capture: DHW setpoint 65 °C, heat pump at 5000 W). Verify raw 999: state 'unknown'",
+      "Verify: every option of the sensor has a state in all three files, key sets are identical, no key heat_demand_status is left, and pytest passes"
     ],
     "passes": false
   },
@@ -413,8 +391,9 @@
       "Depends on the enum support item (value_map in descriptions.py)",
       "Source: table 6117 in docs/xtend-enums.json (confirmed by the owner 2026-10-07). Options are the lowercase names: dhw_idle, dhw_start, dhw_active, dhw_suspended, dhw_reclaim, dhw_postrun",
       "In descriptions.py replace raw('6117', 'raw_6117') with: key 6117, translation_key dhw_state, device_class SensorDeviceClass.ENUM, value_map from the table, no entity_category, enabled by default. unique_id stays {host}_6117",
-      "Translations: name 'DHW state' / 'Tapwaterstatus'; states en: Idle, Starting, Active, Suspended, Reclaim, Post-run; nl: Rust, Starten, Actief, Onderbroken, Terugwinnen, Nalopen. The labels are our own translation",
-      "Verify with stats_values_standby: state 'dhw_idle'; with stats_values_n095: state 'dhw_active'; raw 2 and 32767 give 'unknown'"
+      "Translations: name 'DHW state' / 'Tapwaterstatus'; states en: Idle, Starting, Active, Suspended, Reclaim, Post-run; nl: Rust, Starten, Actief, Onderbroken, Terugwinnen, Nalopen. The labels are our own translation. Add the name and all states to strings.json, translations/en.json and translations/nl.json, and rename the key raw_6117 to dhw_state in all three",
+      "Tests: update tests/test_sensor.py and tests/test_descriptions.py (6117 leaves the raw/diagnostic set); add tests for the Verify values below and for the states in all three translation files",
+      "Verify with stats_values_standby: state 'dhw_idle'; with stats_values_n095: state 'dhw_active'; raw 2 and 32767 give 'unknown'; pytest passes"
     ],
     "passes": false
   },
@@ -427,7 +406,9 @@
       "Entities: 77d2 bit 5 compressor_running (device_class RUNNING), 77d2 bit 1 ch_pump (RUNNING), 77d2 bit 0 dhw_pump (RUNNING), 77c3 bit 3 silent_mode, f9f2 bit 7 heat_demand_heat_pump (HEAT), f9f2 bit 8 heat_demand_boiler (HEAT), f9f2 bit 14 defrost_active",
       "Names en/nl: Compressor running / Compressor actief; CH pump / Cv-pomp; DHW pump / Tapwaterpomp; Silent mode / Stille modus; Heat demand heat pump / Warmtevraag warmtepomp; Heat demand boiler / Warmtevraag ketel; Defrost active / Ontdooien actief",
       "Add Platform.BINARY_SENSOR to PLATFORMS in __init__.py; no extra fields in STATS_FIELDS are needed",
-      "Verify with stats_values_n095: compressor_running on, heat_demand_heat_pump on, heat_demand_boiler off; with stats_values: heat_demand_boiler on, compressor_running off; with stats_values_standby: compressor_running, silent_mode, heat_demand_heat_pump, heat_demand_boiler and defrost_active off, ch_pump on (77d2 = 17102 has bit 1 set in standby)"
+      "Add the names as entity.binary_sensor.<translation_key>.name to strings.json, translations/en.json and translations/nl.json",
+      "Tests: create tests/test_binary_sensor.py with the Verify values below and a check that every translation_key has a name in all three files; update the entity count test in tests/test_sensor.py (7 binary sensors)",
+      "Verify: pytest passes. Verify with stats_values_n095: compressor_running on, heat_demand_heat_pump on, heat_demand_boiler off; with stats_values: heat_demand_boiler on, compressor_running off; with stats_values_standby: compressor_running, silent_mode, heat_demand_heat_pump, heat_demand_boiler and defrost_active off, ch_pump on (77d2 = 17102 has bit 1 set in standby)"
     ],
     "passes": false
   },
@@ -438,93 +419,65 @@
       "Source: app.js gives 6101 unit L with factor 0.01; the meaning is unknown (docs/stats-mapping.md)",
       "In descriptions.py change the 6101 entry: factor 0.01, unit UnitOfVolume.LITERS, device_class VOLUME_STORAGE, stays diagnostic and disabled by default; translation_key and unique_id unchanged",
       "Rename to 'Volume 6101 (raw)' / 'Volume 6101 (ruw)' in all three translation files",
-      "Verify with stats_values_n095: 70.79; with stats_values_standby: 80.13"
+      "Tests: add a test in tests/test_sensor.py with the Verify values below and check unit L",
+      "Verify with stats_values_n095: 70.79; with stats_values_standby: 80.13; pytest passes"
     ],
     "passes": false
   },
   {
-    "category": "api",
-    "description": "The poll also requests the statistics page totals and counters",
+    "category": "entities",
+    "description": "Energy totals and counters from the statistics page are polled and exposed, with tests",
     "steps": [
+      "One item because tests/test_descriptions.py requires one SENSORS entry per STATS_FIELDS id and tests/test_scaffold.py requires a name for every translation_key: the fields, sensors, translations and tests must land in one commit",
       "Source: docs/stats-mapping.md, sections 'Energie totaal' and 'Tellers' (statistics page source and capture, 2026-10-07)",
       "Append these 23 ids to STATS_FIELDS in const.py, in this order: 63b3,63f0,63df,6358,6339,4a76,6a8e,6a8d,6ac5,6a6c,71a7,7160,6a53,4e13,4eeb,4e3a,4a22,4a3c,4aeb,8e00,8ef9,8e37,8e18. The tuple then holds 55 ids; there is still one URL and one request per poll",
       "Update the comment above STATS_FIELDS: it no longer says 32",
       "Do not add any field from the section 'Statistiekenpagina, niet gepold'",
       "Tests: replace the hard-coded 32 in tests/test_api.py, test_coordinator.py, test_descriptions.py, test_scaffold.py and test_sensor.py with len(STATS_FIELDS) or the new count; EXPECTED_STATS_FIELDS in test_scaffold.py gets the 23 ids. In tests/test_fixtures.py the three 32-field captures are a subset of STATS_FIELDS, not equal to it",
-      "Verify: pytest tests/test_api.py tests/test_scaffold.py tests/test_fixtures.py passes and the request URL has 55 ids"
-    ],
-    "passes": false
-  },
-  {
-    "category": "entities",
-    "description": "Energy total sensors from the statistics page",
-    "steps": [
-      "Depends on the item that adds the statistics fields to STATS_FIELDS",
       "Add a helper energy(key, translation_key) in descriptions.py: factor 1, unit UnitOfEnergy.KILO_WATT_HOUR, device_class ENERGY, state_class TOTAL_INCREASING, enabled by default, no entity_category",
       "Entries (key translation_key en / nl): 63b3 ch_heat_pump_energy_used 'CH heat pump energy used' / 'Cv warmtepomp energie verbruikt'; 63f0 ch_heat_pump_energy_generated 'CH heat pump energy generated' / 'Cv warmtepomp energie opgewekt'; 63df ch_boiler_energy_generated 'CH boiler energy generated' / 'Cv ketel energie opgewekt'; 6358 dhw_heat_pump_energy_used 'DHW heat pump energy used' / 'Tapwater warmtepomp energie verbruikt'; 6339 dhw_heat_pump_energy_generated 'DHW heat pump energy generated' / 'Tapwater warmtepomp energie opgewekt'; 4a76 dhw_boiler_energy_generated 'DHW boiler energy generated' / 'Tapwater ketel energie opgewekt'",
       "Add the names to strings.json, translations/en.json and translations/nl.json. The en names follow the statistics page labels; the nl names are our own translation",
-      "Verify with tests/fixtures/stats_values_statistics.json: 63b3 3, 63f0 34, 63df 1, 6358 8, 6339 46, 4a76 76 (the Total column of the owner's screenshot)"
+      "Hours: factor 1, unit UnitOfTime.HOURS, device_class DURATION, state_class TOTAL_INCREASING. Entries: 6ac5 compressor_runtime_ch 'Compressor runtime CH' / 'Draaiuren compressor cv'; 6a6c compressor_runtime_dhw 'Compressor runtime DHW' / 'Draaiuren compressor tapwater'; 71a7 uptime 'Uptime' / 'Uptime'; 4e13 water_pump_hours 'Water pump hours' / 'Draaiuren waterpomp'; 4eeb crank_heater_hours 'Crank heater hours' / 'Uren carterverwarming'; 4e3a base_pan_heater_hours 'Base pan heater hours' / 'Uren bodemplaatverwarming'; 8ef9 boiler_runtime_ch 'Boiler runtime CH' / 'Branduren ketel cv'; 8e37 boiler_runtime_dhw 'Boiler runtime DHW' / 'Branduren ketel tapwater'",
+      "Counts: factor 1, no unit, no device_class, state_class TOTAL_INCREASING. Entries: 6a8e compressor_starts_ch 'Compressor starts CH' / 'Compressorstarts cv'; 6a8d compressor_starts_dhw 'Compressor starts DHW' / 'Compressorstarts tapwater'; 7160 power_cycles 'Power cycles' / 'Aantal keer ingeschakeld'; 6a53 defrost_cycles 'Defrost cycles' / 'Ontdooicycli'; 4a22 water_pump_starts 'Water pump starts' / 'Starts waterpomp'; 4a3c crank_heater_starts 'Crank heater starts' / 'Starts carterverwarming'; 4aeb base_pan_heater_starts 'Base pan heater starts' / 'Starts bodemplaatverwarming'; 8e00 boiler_starts 'Boiler starts' / 'Starts ketel'; 8e18 boiler_flame_loss 'Boiler flame loss' / 'Vlamverlies ketel'",
+      "All 17: entity_category DIAGNOSTIC, enabled by default",
+      "Add the names of all 23 new sensors to strings.json, translations/en.json and translations/nl.json. The en names follow the statistics page labels; the nl names are our own translation",
+      "Use tests/fixtures/stats_values_statistics.json (the owner's capture of the statistics page request, 2026-10-07, 83 fields). Add a conftest fixture stats_payload_statistics",
+      "Test: each of the 23 new sensors gives its sample value from docs/stats-mapping.md",
+      "Test: CH total generated 63f0 + 63df = 35 and DHW total 6339 + 4a76 = 122, as on the screenshot",
+      "Test: energy sensors have device_class energy, unit kWh, state_class total_increasing; hour counters duration/h; counts no unit",
+      "Test: every new translation_key has a name in strings.json, en.json and nl.json",
+      "Verify: the request URL has 55 ids and pytest passes",
+      "Verify energy totals with tests/fixtures/stats_values_statistics.json: 63b3 3, 63f0 34, 63df 1, 6358 8, 6339 46, 4a76 76 (the Total column of the owner's screenshot)",
+      "Verify counters with tests/fixtures/stats_values_statistics.json: 6ac5 9, 6a6c 6, 71a7 100, 4e13 99, 4eeb 7, 4e3a 0, 8ef9 658, 8e37 85, 6a8e 9, 6a8d 6, 7160 13, 6a53 0, 4a22 8, 4a3c 58, 4aeb 0, 8e00 10277, 8e18 1"
     ],
     "passes": false
   },
   {
     "category": "entities",
-    "description": "Derived COP total sensors for CH and DHW",
+    "description": "Derived COP total sensors for CH and DHW, with tests",
     "steps": [
+      "Depends on the item that polls the energy totals",
       "Source: the statistics page computes COP total = generated / used and shows it with 1 decimal (docs/stats-mapping.md, section 'Energie totaal')",
       "These sensors have no stats field of their own. Add a separate tuple DERIVED_SENSORS in descriptions.py with a value_fn: Callable[[Mapping[str, int | str]], float | None]; keep SENSORS one entry per STATS_FIELDS id",
       "cop_total_ch = 63f0 / 63b3; cop_total_dhw = 6339 / 6358; round to 1 decimal; None when used is 0, missing or 32767",
       "state_class MEASUREMENT, no unit, enabled by default; unique_id {host}_cop_total_ch and {host}_cop_total_dhw",
       "Names: 'COP total CH' / 'COP totaal cv'; 'COP total DHW' / 'COP totaal tapwater' in all three translation files",
-      "Verify with tests/fixtures/stats_values_statistics.json: cop_total_ch 11.3, cop_total_dhw 5.8; with 63b3 = 0: unknown"
-    ],
-    "passes": false
-  },
-  {
-    "category": "entities",
-    "description": "Counter sensors from the statistics page",
-    "steps": [
-      "Depends on the item that adds the statistics fields to STATS_FIELDS",
-      "Hours: factor 1, unit UnitOfTime.HOURS, device_class DURATION, state_class TOTAL_INCREASING. Entries: 6ac5 compressor_runtime_ch 'Compressor runtime CH' / 'Draaiuren compressor cv'; 6a6c compressor_runtime_dhw 'Compressor runtime DHW' / 'Draaiuren compressor tapwater'; 71a7 uptime 'Uptime' / 'Uptime'; 4e13 water_pump_hours 'Water pump hours' / 'Draaiuren waterpomp'; 4eeb crank_heater_hours 'Crank heater hours' / 'Uren carterverwarming'; 4e3a base_pan_heater_hours 'Base pan heater hours' / 'Uren bodemplaatverwarming'; 8ef9 boiler_runtime_ch 'Boiler runtime CH' / 'Branduren ketel cv'; 8e37 boiler_runtime_dhw 'Boiler runtime DHW' / 'Branduren ketel tapwater'",
-      "Counts: factor 1, no unit, no device_class, state_class TOTAL_INCREASING. Entries: 6a8e compressor_starts_ch 'Compressor starts CH' / 'Compressorstarts cv'; 6a8d compressor_starts_dhw 'Compressor starts DHW' / 'Compressorstarts tapwater'; 7160 power_cycles 'Power cycles' / 'Aantal keer ingeschakeld'; 6a53 defrost_cycles 'Defrost cycles' / 'Ontdooicycli'; 4a22 water_pump_starts 'Water pump starts' / 'Starts waterpomp'; 4a3c crank_heater_starts 'Crank heater starts' / 'Starts carterverwarming'; 4aeb base_pan_heater_starts 'Base pan heater starts' / 'Starts bodemplaatverwarming'; 8e00 boiler_starts 'Boiler starts' / 'Starts ketel'; 8e18 boiler_flame_loss 'Boiler flame loss' / 'Vlamverlies ketel'",
-      "All 17: entity_category DIAGNOSTIC, enabled by default",
-      "Add the names to strings.json, translations/en.json and translations/nl.json. The nl names are our own translation",
-      "Verify with tests/fixtures/stats_values_statistics.json: 6ac5 9, 6a6c 6, 71a7 100, 4e13 99, 4eeb 7, 4e3a 0, 8ef9 658, 8e37 85, 6a8e 9, 6a8d 6, 7160 13, 6a53 0, 4a22 8, 4a3c 58, 4aeb 0, 8e00 10277, 8e18 1"
-    ],
-    "passes": false
-  },
-  {
-    "category": "tests",
-    "description": "Energy totals and counters are covered by tests",
-    "steps": [
-      "Use tests/fixtures/stats_values_statistics.json (the owner's capture of the statistics page request, 2026-10-07, 83 fields). Add a conftest fixture stats_payload_statistics",
-      "Test: each of the 23 new sensors gives its sample value from docs/stats-mapping.md",
-      "Test: CH total generated 63f0 + 63df = 35 and DHW total 6339 + 4a76 = 122, as on the screenshot",
-      "Test: cop_total_ch 11.3, cop_total_dhw 5.8; used 0 or 32767 gives unknown",
-      "Test: energy sensors have device_class energy, unit kWh, state_class total_increasing; hour counters duration/h; counts no unit",
-      "Test: every new translation_key has a name in strings.json, en.json and nl.json",
-      "Verify: pytest passes"
+      "Test: cop_total_ch 11.3, cop_total_dhw 5.8; used 0 or 32767 gives unknown; both names exist in all three translation files; update the entity count test in tests/test_sensor.py",
+      "Verify with tests/fixtures/stats_values_statistics.json: cop_total_ch 11.3, cop_total_dhw 5.8; with 63b3 = 0: unknown; pytest passes"
     ],
     "passes": false
   },
   {
     "category": "docs",
-    "description": "README lists the energy totals and counters",
+    "description": "README lists the new entities",
     "steps": [
-      "Add the 6 energy totals, 2 COP totals and 17 counters to the Entities table in README.md",
+      "Do this item after the operating mode, DHW state, binary sensor, 6101, statistics and COP items",
+      "Replace the row 'Heat demand status (raw)' in the Entities table of README.md with 'Operating mode | enum | yes'",
+      "Add one sentence: the states are translated in English and Dutch; the translations are our own, the codes come from the owner's mapping (docs/operating-modes.json)",
+      "Replace the row for raw 6117 with 'DHW state | enum | yes' and rename the 6101 row to 'Volume 6101 (raw)' with unit L",
+      "Add the 7 binary sensors, the 6 energy totals, the 2 COP totals and the 17 counters to the Entities table; update the sensor count in the text",
       "Add one sentence: the energy totals are whole kWh since commissioning and can be used in the Home Assistant Energy dashboard",
-      "Verify: every new translation_key's English name appears in README.md"
-    ],
-    "passes": false
-  },
-  {
-    "category": "tooling",
-    "description": "Lint, format and test suite are clean after the operating mode and statistics changes",
-    "steps": [
-      "Run ruff check . and fix every finding",
-      "Run ruff format . and commit the result",
-      "Run pytest and confirm every test passes",
-      "Verify: all three commands exit with code 0"
+      "Verify: README has no 'Heat demand status' text left and the English name of every new translation_key appears in README.md"
     ],
     "passes": false
   },
@@ -625,7 +578,7 @@
     "steps": [
       "Copy custom_components/intergas_xtend into the config directory of a Home Assistant instance and restart",
       "Add the integration with the default host 10.20.30.1",
-      "Verify: the device appears with sw_version and 32 sensors",
+      "Verify: the device appears with sw_version, 57 sensors (55 stats fields + 2 derived COP totals), 7 binary sensors and the 'Poll now' button",
       "Verify: room temperature, outdoor temperature and water pressure show plausible values that change over time",
       "Switch the AP off or wait more than 15 minutes without polling; verify sensors become unavailable, the repairs issue appears and the log shows backoff starting",
       "Switch the AP on again and reconnect the HA host Wi-Fi if needed; press 'Poll now'; verify values return without a restart, the issue disappears and polling is back at the configured interval"
