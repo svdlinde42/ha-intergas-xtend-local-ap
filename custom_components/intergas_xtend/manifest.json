@@ -1,0 +1,12 @@
+{
+  "domain": "intergas_xtend",
+  "name": "Intergas Xtend",
+  "codeowners": ["@svdlinde42"],
+  "config_flow": true,
+  "documentation": "https://github.com/svdlinde42/ha-intergas-xtend-local-ap",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/svdlinde42/ha-intergas-xtend-local-ap/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

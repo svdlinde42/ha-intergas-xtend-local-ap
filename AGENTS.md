@@ -84,17 +84,30 @@ payload field names and units in one place (`const.py` or `api.py`) and document
 source (captured from the device, not guessed) in a comment. Unknown fields: expose raw and
 mark as diagnostic rather than inventing semantics.
 
-## Commands (planned toolchain)
+## Commands
 
-Standard HA custom-integration tooling; adjust once `pyproject.toml` exists.
+Home Assistant core runs on Linux only (it imports `fcntl` and `resource`), and current
+releases need Python 3.14. On Windows run everything inside WSL (`Ubuntu-24.04`); CI runs on
+`ubuntu-latest`. The venv lives in the WSL home directory because a venv on the NTFS mount
+is slow. Checked 2026-10-07 with homeassistant 2026.9.4 and
+pytest-homeassistant-custom-component 0.13.367.
 
-```powershell
-python -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -r requirements_dev.txt          # homeassistant, pytest-homeassistant-custom-component, ruff
+```bash
+# inside WSL, once
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv venv --python 3.14 ~/.venvs/ha-intergas-xtend
+uv pip install --python ~/.venvs/ha-intergas-xtend/bin/python -r requirements_dev.txt
+
+# every run, from /mnt/c/GIT/Prive/ha-intergas-xtend-local-ap
+source ~/.venvs/ha-intergas-xtend/bin/activate
 pytest                                       # all tests
 pytest tests/test_api.py -k status           # single test / pattern
 ruff check . ; ruff format .
 ```
+
+From a Windows shell (for example the ralph loop) pass the commands to WSL on stdin:
+`wsl.exe -d Ubuntu-24.04 -- bash -ls <<'EOF' ... EOF`. Do not use `$VAR` on the
+`wsl.exe` command line; it is lost on the way in.
 
 Local validation runs in a dev HA instance by symlinking or copying `custom_components/`
 into its `config/` directory and restarting. hassfest and HACS validation run as GitHub

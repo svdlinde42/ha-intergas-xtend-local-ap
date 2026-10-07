@@ -1,0 +1,5 @@
+# Development dependencies. pytest-homeassistant-custom-component pins the
+# matching homeassistant version, so neither is pinned here.
+homeassistant
+pytest-homeassistant-custom-component
+ruff

@@ -1,11 +1,24 @@
-import json, re, sys
+"""Generate docs/fault-codes.{md,json} from the Intergas Xtend Eco manual.
+
+Usage: python -I -X utf8 scripts/gen_codes.py <pdf> <out.md> <out.json>
+
+Reads chapter 12.1 and 12.2 of Intergas document 88104401 (page index 84-87)
+with pdfplumber. The Dutch text is copied verbatim; do not edit the output by hand.
+"""
+
+import json
+import re
+import sys
+
 import pdfplumber
 
 PDF = sys.argv[1]
 OUT_MD = sys.argv[2]
 OUT_JSON = sys.argv[3]
 
+
 def join_lines(s):
+    """Join wrapped table-cell lines into one string, keeping hyphenated breaks."""
     parts = [p.strip() for p in s.split("\n") if p.strip()]
     out = ""
     for p in parts:
@@ -15,7 +28,9 @@ def join_lines(s):
             out += (" " if out else "") + p
     return out
 
+
 def bullets(s):
+    """Split a cell on the manual's bullet marker and return the non-empty items."""
     items = [b for b in s.split("►")]
     res = []
     for b in items:
@@ -23,6 +38,7 @@ def bullets(s):
         if t:
             res.append(t)
     return res
+
 
 faults, notes = [], []
 with pdfplumber.open(PDF) as pdf:
@@ -53,18 +69,21 @@ data = {
 }
 json.dump(data, open(OUT_JSON, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
 
+
 def table(rows):
+    """Render code entries as a Markdown table."""
     lines = ["| Code | Omschrijving | Mogelijke oorzaak / oplossing |", "|---|---|---|"]
     for r in rows:
-        sol = "<br>".join(r["cause_solution"]).replace("|", "\|")
+        sol = "<br>".join(r["cause_solution"]).replace("|", r"\|")
         lines.append(f"| {r['code']} | {r['description']} | {sol} |")
     return "\n".join(lines)
 
+
 md = f"""# Intergas Xtend fout- en notificatiecodes
 
-Bron: {data['source']['document']}, {data['source']['chapters']}.
-URL: {data['source']['url']}
-Tekst letterlijk overgenomen op {data['source']['extracted']}, inclusief schrijfwijze uit het document.
+Bron: {data["source"]["document"]}, {data["source"]["chapters"]}.
+URL: {data["source"]["url"]}
+Tekst letterlijk overgenomen op {data["source"]["extracted"]}, inclusief schrijfwijze uit het document.
 Machineleesbare versie: `docs/fault-codes.json`.
 
 Toepassing in de integratie:

@@ -12,7 +12,7 @@
       "Create pyproject.toml with ruff and pytest config (asyncio_mode auto, testpaths tests)",
       "Verify: python -c 'import json; json.load(open(\"custom_components/intergas_xtend/manifest.json\"))' succeeds"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "scaffold",
