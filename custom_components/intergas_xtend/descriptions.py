@@ -240,7 +240,18 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
     raw("77c3", "status_flags"),
     raw("77d2", "system_io"),
     raw("f9f2", "bivalent_service_flags"),
-    raw("6101", "raw_6101"),
+    # 6101 is a volume in 0.01 L (app.js); what it measures is not known, so
+    # it stays a disabled diagnostic. 32767 means "not available", as for
+    # every other scaled field.
+    XtendSensorDescription(
+        key="6101",
+        translation_key="raw_6101",
+        factor=0.01,
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        device_class=SensorDeviceClass.VOLUME_STORAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+    ),
     raw("7774", "raw_7774"),
     raw("77de", "raw_77de"),
 )

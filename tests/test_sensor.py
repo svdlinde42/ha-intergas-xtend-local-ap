@@ -908,7 +908,6 @@ RAW_SENSORS = {
     "77c3": "status_flags",
     "77d2": "system_io",
     "f9f2": "bivalent_service_flags",
-    "6101": "raw_6101",
     "7774": "raw_7774",
     "77de": "raw_77de",
 }
@@ -931,7 +930,7 @@ def test_raw_descriptions() -> None:
 
     # Every other sensor is enabled by default.
     for description in SENSORS:
-        if description.key not in RAW_SENSORS:
+        if description.key not in {*RAW_SENSORS, "6101"}:
             assert description.entity_registry_enabled_default is True, description.key
 
 
@@ -945,7 +944,6 @@ def test_raw_descriptions() -> None:
         ("7e7a", 64),
         ("77c3", 208),
         ("f9f2", 265),
-        ("6101", 396),
     ],
 )
 def test_raw_values_from_first_capture(
@@ -998,6 +996,63 @@ async def test_raw_sensors_are_disabled_diagnostics(
     assert "unit_of_measurement" not in state.attributes
     assert "device_class" not in state.attributes
     assert "state_class" not in state.attributes
+
+
+def test_volume_6101_description() -> None:
+    description = {d.key: d for d in SENSORS}["6101"]
+    assert description.translation_key == "raw_6101"
+    assert description.factor == 0.01
+    assert description.native_unit_of_measurement == UnitOfVolume.LITERS
+    assert description.device_class == SensorDeviceClass.VOLUME_STORAGE
+    assert description.state_class is None
+    assert description.entity_category == EntityCategory.DIAGNOSTIC
+    assert description.entity_registry_enabled_default is False
+    assert description.none_values == frozenset({32767})
+
+
+@pytest.mark.parametrize(
+    ("fixture", "expected"),
+    [
+        # Verify step of the 6101 item.
+        ("stats_payload_n095", 70.79),
+        ("stats_payload_standby", 80.13),
+        ("stats_payload", 3.96),
+    ],
+)
+def test_volume_6101_values(
+    request: pytest.FixtureRequest, fixture: str, expected: float
+) -> None:
+    payload = request.getfixturevalue(fixture)
+    description = {d.key: d for d in SENSORS}["6101"]
+    assert make_sensor(description, payload).native_value == expected
+    assert make_sensor(description, {**payload, "6101": 32767}).native_value is None
+
+
+async def test_volume_6101_state_has_unit_liter(
+    hass: HomeAssistant, stats_payload_n095: dict[str, int | str]
+) -> None:
+    entry = await setup_entry(hass, stats_payload_n095)
+    entity_registry = er.async_get(hass)
+    entity_id = entity_registry.async_get_entity_id(
+        SENSOR_DOMAIN, DOMAIN, f"{HOST}_6101"
+    )
+    assert entity_id is not None
+    registry_entry = entity_registry.async_get(entity_id)
+    assert registry_entry is not None
+    assert registry_entry.entity_category == EntityCategory.DIAGNOSTIC
+    assert registry_entry.translation_key == "raw_6101"
+    assert registry_entry.disabled_by is er.RegistryEntryDisabler.INTEGRATION
+
+    entity_registry.async_update_entity(entity_id, disabled_by=None)
+    with patch(GET_STATS, return_value=stats_payload_n095):
+        await hass.config_entries.async_reload(entry.entry_id)
+        await hass.async_block_till_done()
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == "70.79"
+    assert state.attributes["unit_of_measurement"] == "L"
+    assert state.attributes["device_class"] == "volume_storage"
+    assert state.attributes["friendly_name"] == "Intergas Xtend Volume 6101 (raw)"
 
 
 def state_by_unique_id(hass: HomeAssistant, key: str):

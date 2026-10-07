@@ -85,7 +85,7 @@ unknown.
 | Status flags (raw) | none | no (diagnostic) |
 | System I/O (raw) | none | no (diagnostic) |
 | Bivalent service flags (raw) | none | no (diagnostic) |
-| Raw 6101 | none | no (diagnostic) |
+| Volume 6101 (raw) | L | no (diagnostic) |
 | Raw 7774 | none | no (diagnostic) |
 | Raw 77de | none | no (diagnostic) |
 

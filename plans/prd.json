@@ -422,7 +422,7 @@
       "Tests: add a test in tests/test_sensor.py with the Verify values below and check unit L",
       "Verify with stats_values_n095: 70.79; with stats_values_standby: 80.13; pytest passes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",
