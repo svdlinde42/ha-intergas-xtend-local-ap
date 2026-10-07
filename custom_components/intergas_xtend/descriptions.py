@@ -7,6 +7,7 @@ a Home Assistant class.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from homeassistant.components.sensor import (
@@ -24,6 +25,7 @@ from homeassistant.const import (
     UnitOfVolumeFlowRate,
 )
 
+from .codes import CodeInfo, fault_info, notification_info
 from .const import FIRMWARE_FIELD, NO_CODE, NO_FAULT, NOT_AVAILABLE
 
 
@@ -35,11 +37,15 @@ class XtendSensorDescription(SensorEntityDescription):
     raw * factor); None keeps the raw value. none_values are raw values that
     mean "no value", so the sensor reports None. text_format is a printf-style
     format applied to the raw value, e.g. "n%03d" for notification codes.
+    code_lookup maps the formatted value (e.g. "n095") to the manual's entry
+    in codes.py; the sensor shows it as the attributes description and
+    cause_solution. None means the sensor has no such attributes.
     """
 
     factor: float | None = None
     none_values: frozenset[int] = frozenset({NOT_AVAILABLE})
     text_format: str | None = None
+    code_lookup: Callable[[str], CodeInfo | None] | None = None
 
 
 def temperature(key: str, translation_key: str) -> XtendSensorDescription:
@@ -77,12 +83,14 @@ def power(key: str, translation_key: str) -> XtendSensorDescription:
 SENSORS: tuple[XtendSensorDescription, ...] = (
     # Meldingen (notification, lockout and boiler fault codes). 255 means no
     # notification or lockout; the codes are shown as the display shows them
-    # (n095, F037). docs/fault-codes.json holds their meaning.
+    # (n095, F037). codes.py (from docs/fault-codes.json) holds their meaning,
+    # exposed as attributes through code_lookup.
     XtendSensorDescription(
         key="7940",
         translation_key="notification_code",
         none_values=frozenset({NO_CODE}),
         text_format="n%03d",
+        code_lookup=notification_info,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     XtendSensorDescription(
@@ -90,10 +98,12 @@ SENSORS: tuple[XtendSensorDescription, ...] = (
         translation_key="lockout_code",
         none_values=frozenset({NO_CODE}),
         text_format="F%03d",
+        code_lookup=fault_info,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     # 8439 is the CV boiler's own OpenTherm fault code: 0 means no fault and
-    # the raw number is shown, because the Xtend manual does not cover it.
+    # the raw number is shown, because the Xtend manual does not cover it, so
+    # there is no code_lookup and no attributes.
     XtendSensorDescription(
         key="8439",
         translation_key="boiler_fault_code",

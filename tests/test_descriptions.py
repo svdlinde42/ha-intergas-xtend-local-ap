@@ -55,6 +55,7 @@ def test_description_defaults_and_immutability() -> None:
     description = XtendSensorDescription(key="0000")
     assert description.factor is None
     assert description.text_format is None
+    assert description.code_lookup is None
     assert description.none_values == frozenset({NOT_AVAILABLE})
     with pytest.raises(FrozenInstanceError):
         description.factor = 1.0  # type: ignore[misc]

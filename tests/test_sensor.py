@@ -30,6 +30,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 import pytest
 
+from custom_components.intergas_xtend.codes import fault_info, notification_info
 from custom_components.intergas_xtend.const import DOMAIN, STATS_FIELDS
 from custom_components.intergas_xtend.descriptions import (
     SENSORS,
@@ -554,6 +555,7 @@ def test_code_descriptions() -> None:
     assert notification.none_values == frozenset({255})
     assert notification.text_format == "n%03d"
     assert notification.factor is None
+    assert notification.code_lookup is notification_info
     assert notification.entity_category == EntityCategory.DIAGNOSTIC
 
     lockout = by_key["7e2c"]
@@ -561,6 +563,7 @@ def test_code_descriptions() -> None:
     assert lockout.none_values == frozenset({255})
     assert lockout.text_format == "F%03d"
     assert lockout.factor is None
+    assert lockout.code_lookup is fault_info
     assert lockout.entity_category == EntityCategory.DIAGNOSTIC
 
     fault = by_key["8439"]
@@ -568,7 +571,12 @@ def test_code_descriptions() -> None:
     assert fault.none_values == frozenset({0})
     assert fault.text_format is None
     assert fault.factor is None
+    # The boiler's own OpenTherm code is not in the Xtend manual.
+    assert fault.code_lookup is None
     assert fault.entity_category == EntityCategory.DIAGNOSTIC
+
+    # Only the two code sensors with a lookup carry attributes.
+    assert [d.key for d in SENSORS if d.code_lookup is not None] == ["7940", "7e2c"]
 
     # Code sensors are text or plain numbers: no unit, device class or
     # state class.
@@ -639,3 +647,115 @@ async def test_code_states_are_diagnostic_text(
     fault_entry, fault = entry_and_state("8439")
     assert fault.state == STATE_UNKNOWN
     assert fault_entry.entity_category == EntityCategory.DIAGNOSTIC
+
+
+# Code attributes from the manual (entities item: codes.py).
+NO_CODE_ATTRIBUTES = {"description": None, "cause_solution": []}
+
+
+def test_code_attributes_from_the_captures(
+    stats_payload: dict[str, int | str], stats_payload_n095: dict[str, int | str]
+) -> None:
+    by_key = {d.key: d for d in SENSORS}
+
+    # No code: the attributes keep their keys but hold nothing.
+    for key in ("7940", "7e2c"):
+        sensor = make_sensor(by_key[key], stats_payload)
+        assert sensor.native_value is None
+        assert sensor.extra_state_attributes == NO_CODE_ATTRIBUTES, key
+
+    # Verify step: the real n095 capture.
+    sensor = make_sensor(by_key["7940"], stats_payload_n095)
+    assert sensor.native_value == "n095"
+    attributes = sensor.extra_state_attributes
+    assert attributes is not None
+    assert attributes["description"] == "Probleem met driewegklep."
+    assert attributes["cause_solution"] == [
+        "Controleer de bedrading.",
+        "Controleer de motor van de driewegklep.",
+        "Controleer de behuizing van de driewegklep.",
+        "Controleer parameter P047, P068 en P069.",
+    ]
+    assert len(attributes["cause_solution"]) == 4
+    assert isinstance(attributes["cause_solution"], list)
+
+
+@pytest.mark.parametrize(
+    ("key", "raw", "state", "description"),
+    [
+        # Verify step: n120 falls in the n100-n165 FOTA range.
+        ("7940", 120, "n120", "FOTA gerelateerde melding."),
+        # Verify step: F254 is the last fault code in the manual.
+        ("7e2c", 254, "F254", "Bypassmodus actief."),
+        ("7e2c", 37, "F037", "Sensorfout retourleiding T04."),
+        # Codes the manual does not list keep the state but have no text.
+        ("7940", 99, "n099", None),
+        ("7e2c", 2, "F002", None),
+    ],
+)
+def test_code_attributes_follow_the_formatted_value(
+    stats_payload: dict[str, int | str],
+    key: str,
+    raw: int,
+    state: str,
+    description: str | None,
+) -> None:
+    sensor = make_sensor({d.key: d for d in SENSORS}[key], {**stats_payload, key: raw})
+    assert sensor.native_value == state
+    attributes = sensor.extra_state_attributes
+    assert attributes is not None
+    assert attributes["description"] == description
+    if description is None:
+        assert attributes["cause_solution"] == []
+    else:
+        assert len(attributes["cause_solution"]) >= 1
+
+
+def test_only_code_sensors_have_attributes(stats_payload: dict[str, int | str]) -> None:
+    for description in SENSORS:
+        sensor = make_sensor(description, stats_payload)
+        if description.key in ("7940", "7e2c"):
+            assert sensor.extra_state_attributes is not None, description.key
+        else:
+            assert sensor.extra_state_attributes is None, description.key
+
+
+async def test_code_attributes_reach_the_state_machine(
+    hass: HomeAssistant,
+    stats_payload_n095: dict[str, int | str],
+    stats_payload: dict[str, int | str],
+) -> None:
+    entry = await setup_entry(hass, stats_payload_n095)
+    entity_registry = er.async_get(hass)
+
+    def state_of(key: str):
+        entity_id = entity_registry.async_get_entity_id(
+            SENSOR_DOMAIN, DOMAIN, f"{HOST}_{key}"
+        )
+        assert entity_id is not None
+        state = hass.states.get(entity_id)
+        assert state is not None
+        return state
+
+    notification = state_of("7940")
+    assert notification.state == "n095"
+    assert notification.attributes["description"] == "Probleem met driewegklep."
+    assert len(notification.attributes["cause_solution"]) == 4
+
+    lockout = state_of("7e2c")
+    assert lockout.state == STATE_UNKNOWN
+    assert lockout.attributes["description"] is None
+    assert lockout.attributes["cause_solution"] == []
+
+    assert "description" not in state_of("8439").attributes
+    assert "description" not in state_of("79b3").attributes
+
+    # The attributes follow the value on the next poll.
+    with patch(GET_STATS, return_value={**stats_payload, "7e2c": 254}):
+        await scheduled_poll(hass, entry.runtime_data)
+    assert state_of("7940").state == STATE_UNKNOWN
+    assert state_of("7940").attributes["description"] is None
+    lockout = state_of("7e2c")
+    assert lockout.state == "F254"
+    assert lockout.attributes["description"] == "Bypassmodus actief."
+    assert len(lockout.attributes["cause_solution"]) == 2

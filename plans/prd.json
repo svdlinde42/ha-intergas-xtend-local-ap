@@ -300,7 +300,7 @@
       "scripts/gen_codes.py (added 2026-10-06) regenerates docs/fault-codes.json and docs/fault-codes.md from the PDF with pdfplumber (page index 84-87); run it again when a new manual version appears: python -I -X utf8 scripts/gen_codes.py <pdf> docs/fault-codes.md docs/fault-codes.json",
       "Verify with stats_values_n095: the sensor state is 'n095', attribute description is 'Probleem met driewegklep.' and cause_solution has 4 items; with 7940 = 120 description is 'FOTA gerelateerde melding.'; with 7e2c = 254 description is 'Bypassmodus actief.'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

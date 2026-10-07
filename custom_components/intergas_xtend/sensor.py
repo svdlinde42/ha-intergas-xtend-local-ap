@@ -8,6 +8,8 @@ There are no per-field subclasses: a new field is a new table row, not new code.
 
 from __future__ import annotations
 
+from typing import Any
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -71,3 +73,25 @@ class XtendSensor(CoordinatorEntity[XtendCoordinator], SensorEntity):
                 return None
             return round(raw * description.factor, 2)
         return raw
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Add the manual's description and cause/solution for code sensors.
+
+        Only descriptions with a code_lookup (notification and lockout code)
+        have attributes. The text comes from codes.py and is Dutch, quoted
+        from the manual. Without a code, or for a code the manual does not
+        list, description is None and cause_solution is empty, so the
+        attributes keep the same keys at all times.
+        """
+        lookup = self.entity_description.code_lookup
+        if lookup is None:
+            return None
+        value = self.native_value
+        info = lookup(value) if isinstance(value, str) else None
+        if info is None:
+            return {"description": None, "cause_solution": []}
+        return {
+            "description": info.description,
+            "cause_solution": list(info.cause_solution),
+        }
