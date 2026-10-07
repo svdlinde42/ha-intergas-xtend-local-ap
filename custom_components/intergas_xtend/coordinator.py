@@ -27,6 +27,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import issue_registry as ir
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import XtendApi, XtendError
@@ -35,8 +36,11 @@ from .const import (
     BACKOFF_MAX_SECONDS,
     BACKOFF_START_FAILURES,
     DEFAULT_SCAN_INTERVAL,
+    DEVICE_NAME,
     DOMAIN,
+    FIRMWARE_FIELD,
     ISSUE_AP_UNREACHABLE,
+    MANUFACTURER,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,6 +110,23 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
     def backing_off(self) -> bool:
         """True while the poll interval is stretched because the device is gone."""
         return self.failures >= BACKOFF_START_FAILURES
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Device registry entry that every entity of this entry links to.
+
+        The firmware version comes from the last payload. Home Assistant copies
+        it into the device registry when an entity is added, so a firmware
+        update shows after the next reload or restart, not on the next poll.
+        """
+        firmware = (self.data or {}).get(FIRMWARE_FIELD)
+        return DeviceInfo(
+            identifiers={(DOMAIN, self.api.host)},
+            name=DEVICE_NAME,
+            manufacturer=MANUFACTURER,
+            sw_version=firmware if isinstance(firmware, str) else None,
+            configuration_url=f"http://{self.api.host}",
+        )
 
     async def _async_refresh(
         self,

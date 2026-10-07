@@ -28,6 +28,14 @@ BACKOFF_MAX_SECONDS = 300
 # issue id is this key plus the host, so each config entry has its own issue.
 ISSUE_AP_UNREACHABLE = "ap_unreachable"
 
+# Device registry entry shared by every entity of one config entry. The status
+# payload has no serial number or MAC address (decided 2026-10-06), so the
+# device is identified by the host, like the entry's unique id.
+DEVICE_NAME = "Intergas Xtend"
+MANUFACTURER = "Intergas"
+# Stats id of the firmware version string, e.g. "V1.20-" (docs/stats-mapping.md).
+FIRMWARE_FIELD = "47e0"
+
 # REST status endpoint of the Xtend. Captured from the device on 2026-10-06
 # (firmware V1.20-), not guessed. Request:
 #   GET http://<host>/api/stats/values?fields=<comma-separated hex ids>

@@ -20,7 +20,11 @@ from homeassistant.const import (
     EntityCategory,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import entity_registry as er, issue_registry as ir
+from homeassistant.helpers import (
+    device_registry as dr,
+    entity_registry as er,
+    issue_registry as ir,
+)
 from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -410,6 +414,47 @@ async def test_unload_entry(
     assert entry.state is ConfigEntryState.NOT_LOADED
 
 
+async def test_one_device_with_firmware_and_link(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    # Verify step of the device info item: the device registry shows one
+    # device with sw_version V1.20- for the fixture.
+    entry = await setup_entry(hass, stats_payload)
+    device_registry = dr.async_get(hass)
+    devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+    assert len(devices) == 1
+    device = devices[0]
+    assert device.identifiers == {(DOMAIN, HOST)}
+    assert device.name == "Intergas Xtend"
+    assert device.manufacturer == "Intergas"
+    assert device.sw_version == "V1.20-"
+    assert device.configuration_url == f"http://{HOST}"
+
+    # Every entity of the entry hangs under that device, which also gives the
+    # button its entity id (device name + entity name).
+    entity_id = poll_now_entity_id(hass)
+    assert entity_id == "button.intergas_xtend_poll_now"
+    registry_entry = er.async_get(hass).async_get(entity_id)
+    assert registry_entry is not None
+    assert registry_entry.device_id == device.id
+
+
+@pytest.mark.parametrize("firmware", [32767, None])
+async def test_device_without_firmware_string_has_no_sw_version(
+    hass: HomeAssistant, stats_payload: dict[str, int | str], firmware: int | None
+) -> None:
+    # sw_version is only set when 47e0 holds a string.
+    stats = dict(stats_payload)
+    if firmware is None:
+        del stats["47e0"]
+    else:
+        stats["47e0"] = firmware
+    entry = await setup_entry(hass, stats)
+    device = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)[0]
+    assert device.sw_version is None
+    assert entry.runtime_data.device_info["sw_version"] is None
+
+
 async def test_poll_now_button_is_registered_as_diagnostic(
     hass: HomeAssistant, stats_payload: dict[str, int | str]
 ) -> None:
@@ -423,8 +468,8 @@ async def test_poll_now_button_is_registered_as_diagnostic(
     assert state is not None
     assert state.state != STATE_UNAVAILABLE
     assert state.attributes[ATTR_ICON] == "mdi:refresh"
-    # The English name from translations/en.json.
-    assert state.attributes["friendly_name"] == "Poll now"
+    # Device name plus the English entity name from translations/en.json.
+    assert state.attributes["friendly_name"] == "Intergas Xtend Poll now"
 
 
 async def test_poll_now_button_stays_available_while_the_device_is_gone(

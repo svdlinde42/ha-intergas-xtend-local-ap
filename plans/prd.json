@@ -202,7 +202,7 @@
       "Set configuration_url to http://{host}",
       "Verify: the device registry shows one device with sw_version V1.20- for the fixture"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

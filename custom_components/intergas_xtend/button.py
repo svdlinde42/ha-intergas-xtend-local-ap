@@ -37,6 +37,7 @@ class XtendPollNowButton(CoordinatorEntity[XtendCoordinator], ButtonEntity):
         """Create the button; the unique id follows the host like every entity."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.api.host}_poll_now"
+        self._attr_device_info = coordinator.device_info
 
     @property
     def available(self) -> bool:
