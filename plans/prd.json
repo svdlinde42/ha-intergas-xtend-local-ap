@@ -177,7 +177,7 @@
       "Add the repairs issue texts to strings.json and both translation files (NL: 'Nu pollen' for the button name)",
       "Verify: with 3 failed updates the issue exists; after one success it is gone"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "entities",

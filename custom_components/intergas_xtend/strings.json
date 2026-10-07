@@ -34,5 +34,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "ap_unreachable": {
+      "title": "Intergas Xtend at {host} is unreachable",
+      "description": "The Xtend at {host} does not answer. Its Wi-Fi access point switches itself off after about 15 minutes without requests, and polling cannot switch it back on.\n\n1. Re-enable the access point on the Xtend.\n2. Reconnect the Home Assistant host to the Xtend Wi-Fi if needed.\n3. Press the **Poll now** button of the Intergas Xtend device.\n\nUntil then the integration polls less often, at most once every 5 minutes. One successful poll closes this issue."
+    }
   }
 }

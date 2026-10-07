@@ -34,5 +34,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "ap_unreachable": {
+      "title": "Intergas Xtend op {host} is onbereikbaar",
+      "description": "De Xtend op {host} antwoordt niet. Het wifi-accesspoint schakelt zichzelf uit na ongeveer 15 minuten zonder verzoeken, en pollen kan het niet weer inschakelen.\n\n1. Schakel het accesspoint op de Xtend weer in.\n2. Verbind de Home Assistant-host zo nodig opnieuw met de wifi van de Xtend.\n3. Druk op de knop **Nu pollen** van het Intergas Xtend-apparaat.\n\nTot die tijd pollt de integratie minder vaak, hoogstens eens per 5 minuten. Eén geslaagde poll sluit deze melding."
+    }
   }
 }

@@ -7,6 +7,7 @@ from unittest.mock import patch
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import CONF_HOST, CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.util import dt as dt_util
 import pytest
 from pytest_homeassistant_custom_component.common import (
@@ -20,9 +21,13 @@ from custom_components.intergas_xtend.const import (
     BACKOFF_MAX_SECONDS,
     BACKOFF_START_FAILURES,
     DOMAIN,
+    ISSUE_AP_UNREACHABLE,
     STATS_FIELDS,
 )
-from custom_components.intergas_xtend.coordinator import XtendCoordinator
+from custom_components.intergas_xtend.coordinator import (
+    XtendCoordinator,
+    issue_id_for_host,
+)
 
 # Patch the class method on api.py so every XtendApi instance is covered.
 GET_STATS = "custom_components.intergas_xtend.api.XtendApi.async_get_stats"
@@ -282,6 +287,77 @@ async def test_scheduled_polls_follow_the_backoff_interval(
         assert coordinator.update_interval == timedelta(seconds=40)
 
     remove_listener()
+
+
+def get_issue(hass: HomeAssistant) -> ir.IssueEntry | None:
+    return ir.async_get(hass).async_get_issue(DOMAIN, issue_id_for_host(HOST))
+
+
+async def test_repairs_issue_after_three_failures_gone_after_one_success(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    # Verify step of the repairs item: with 3 failed updates the issue exists;
+    # after one success it is gone.
+    entry = await setup_entry(hass, stats_payload)
+    coordinator = entry.runtime_data
+    assert coordinator.issue_id == f"{ISSUE_AP_UNREACHABLE}_{HOST}"
+    assert get_issue(hass) is None
+
+    with patch(GET_STATS, side_effect=XtendConnectionError("refused")):
+        await coordinator.async_refresh()
+        await coordinator.async_refresh()
+        assert get_issue(hass) is None
+        await coordinator.async_refresh()
+        issue = get_issue(hass)
+        assert issue is not None
+        assert issue.severity is ir.IssueSeverity.WARNING
+        assert issue.is_fixable is False
+        assert issue.translation_key == ISSUE_AP_UNREACHABLE
+        assert issue.translation_placeholders == {"host": HOST}
+        # More failures keep the same issue.
+        await coordinator.async_refresh()
+        assert get_issue(hass) is issue
+        assert len(ir.async_get(hass).issues) == 1
+
+    with patch(GET_STATS, return_value=stats_payload):
+        await coordinator.async_refresh()
+    assert get_issue(hass) is None
+    assert ir.async_get(hass).issues == {}
+
+
+async def test_success_deletes_an_issue_left_by_a_previous_coordinator(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    # A reload during an outage gives a fresh coordinator with 0 failures;
+    # its first success must still clear the old issue.
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        issue_id_for_host(HOST),
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_AP_UNREACHABLE,
+        translation_placeholders={"host": HOST},
+    )
+    assert get_issue(hass) is not None
+
+    await setup_entry(hass, stats_payload)
+    assert get_issue(hass) is None
+
+
+async def test_removing_the_entry_deletes_the_issue(
+    hass: HomeAssistant, stats_payload: dict[str, int | str]
+) -> None:
+    entry = await setup_entry(hass, stats_payload)
+    coordinator = entry.runtime_data
+    with patch(GET_STATS, side_effect=XtendConnectionError("refused")):
+        for _ in range(3):
+            await coordinator.async_refresh()
+    assert get_issue(hass) is not None
+
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert get_issue(hass) is None
 
 
 async def test_unload_entry(

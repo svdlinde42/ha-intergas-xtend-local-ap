@@ -24,6 +24,10 @@ BACKOFF_START_FAILURES = 3
 BACKOFF_FACTOR = 2
 BACKOFF_MAX_SECONDS = 300
 
+# Translation key of the repairs issue raised when the back-off starts. The
+# issue id is this key plus the host, so each config entry has its own issue.
+ISSUE_AP_UNREACHABLE = "ap_unreachable"
+
 # REST status endpoint of the Xtend. Captured from the device on 2026-10-06
 # (firmware V1.20-), not guessed. Request:
 #   GET http://<host>/api/stats/values?fields=<comma-separated hex ids>

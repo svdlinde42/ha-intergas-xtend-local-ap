@@ -11,6 +11,7 @@ from custom_components.intergas_xtend.const import (
     DEFAULT_HOST,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ISSUE_AP_UNREACHABLE,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     STATS_FIELDS,
@@ -121,6 +122,20 @@ def test_strings_json_has_config_flow_texts() -> None:
     assert "already_configured" in config["abort"]
     options = strings["options"]
     assert set(options["step"]["init"]["data"]) == {"scan_interval"}
+
+
+def test_strings_json_has_repairs_issue_texts() -> None:
+    # The repairs item: the issue text names the host and the recovery steps.
+    strings = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))
+    nl = json.loads(
+        (INTEGRATION / "translations" / "nl.json").read_text(encoding="utf-8")
+    )
+    for texts, button in ((strings, "Poll now"), (nl, "Nu pollen")):
+        issue = texts["issues"][ISSUE_AP_UNREACHABLE]
+        assert "{host}" in issue["title"]
+        assert "{host}" in issue["description"]
+        assert "15" in issue["description"]
+        assert button in issue["description"]
 
 
 def _key_paths(node: object, prefix: str = "") -> set[str]:

@@ -10,8 +10,8 @@ Once the access point is off, polling cannot bring it back: the user must
 re-enable it on the device. So after BACKOFF_START_FAILURES consecutive
 failures the coordinator doubles its interval per failure up to
 BACKOFF_MAX_SECONDS, and one successful poll restores the configured interval.
-The repairs issue for this state is added by the next coordinator item in
-plans/prd.json.
+When the back-off starts the coordinator also raises a repairs issue with the
+recovery steps; the next successful poll deletes it.
 
 This module must stay free of imports from __init__.py to avoid an import cycle.
 """
@@ -24,6 +24,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_SCAN_INTERVAL
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import XtendApi, XtendError
@@ -33,6 +34,7 @@ from .const import (
     BACKOFF_START_FAILURES,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    ISSUE_AP_UNREACHABLE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,6 +54,14 @@ def scan_interval_from_entry(entry: ConfigEntry) -> int:
             entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
         )
     )
+
+
+def issue_id_for_host(host: str) -> str:
+    """Return the repairs issue id for one device.
+
+    The host is the entry's unique id, so one issue per config entry.
+    """
+    return f"{ISSUE_AP_UNREACHABLE}_{host}"
 
 
 class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
@@ -81,6 +91,11 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
             name=f"{DOMAIN} {api.host}",
             update_interval=timedelta(seconds=self.scan_interval),
         )
+
+    @property
+    def issue_id(self) -> str:
+        """Id of the repairs issue raised while the device is unreachable."""
+        return issue_id_for_host(self.api.host)
 
     @property
     def backing_off(self) -> bool:
@@ -130,9 +145,25 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
                 BACKOFF_MAX_SECONDS,
             )
         self.update_interval = timedelta(seconds=seconds)
+        # Creating an issue that already exists with the same content is a
+        # no-op, so this is safe to repeat on every failure during back-off.
+        ir.async_create_issue(
+            self.hass,
+            DOMAIN,
+            self.issue_id,
+            is_fixable=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key=ISSUE_AP_UNREACHABLE,
+            translation_placeholders={"host": self.api.host},
+        )
 
     def _register_success(self) -> None:
-        """Reset the failure counter and restore the configured interval."""
+        """Reset the failure counter and restore the configured interval.
+
+        The repairs issue is deleted on every success, not only when this
+        coordinator started the back-off: after a reload during an outage a new
+        coordinator starts at 0 failures while the old issue still exists.
+        """
         if self.backing_off:
             _LOGGER.info(
                 "%s answers again after %d failed polls; polling every %d s",
@@ -142,3 +173,4 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
             )
         self.failures = 0
         self.update_interval = timedelta(seconds=self.scan_interval)
+        ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
