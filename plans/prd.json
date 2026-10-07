@@ -48,7 +48,7 @@
       "On HTTP status other than 200 raise XtendResponseError with the status code",
       "Verify: grep for 'homeassistant' in api.py returns nothing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "api",

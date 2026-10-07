@@ -2,6 +2,8 @@
 
 import json
 from pathlib import Path
+import subprocess
+import sys
 
 import yaml
 
@@ -62,6 +64,52 @@ def test_stats_fields_are_documented_in_mapping() -> None:
     mapping = (ROOT / "docs" / "stats-mapping.md").read_text(encoding="utf-8")
     missing = [f for f in STATS_FIELDS if f not in mapping]
     assert missing == []
+
+
+def test_api_module_does_not_import_home_assistant() -> None:
+    # Verify step of the api item: api.py must be usable without Home Assistant.
+    source = (INTEGRATION / "api.py").read_text(encoding="utf-8")
+    assert "homeassistant" not in source
+    # Stronger check: importing api.py in a fresh interpreter with the
+    # homeassistant package blocked must succeed. The package __init__.py does
+    # import Home Assistant (it is the integration entry point), so register a
+    # stub package first and import api as its submodule.
+    script = "\n".join(
+        [
+            "import sys, types",
+            "sys.modules['homeassistant'] = None",
+            "pkg = types.ModuleType('custom_components.intergas_xtend')",
+            f"pkg.__path__ = [{str(INTEGRATION)!r}]",
+            "sys.modules[pkg.__name__] = pkg",
+            "import custom_components.intergas_xtend.api as api",
+            "assert api.XtendApi",
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_api_builds_stats_url_from_const() -> None:
+    from custom_components.intergas_xtend.api import (
+        XtendApi,
+        XtendConnectionError,
+        XtendError,
+        XtendResponseError,
+    )
+
+    api = XtendApi(session=None, host="10.20.30.1")  # type: ignore[arg-type]
+    assert api.host == "10.20.30.1"
+    assert api.stats_url == (
+        f"http://10.20.30.1{STATS_PATH}?fields={','.join(EXPECTED_STATS_FIELDS)}"
+    )
+    assert issubclass(XtendConnectionError, XtendError)
+    assert issubclass(XtendResponseError, XtendError)
 
 
 def test_validate_workflow_has_three_jobs() -> None:
