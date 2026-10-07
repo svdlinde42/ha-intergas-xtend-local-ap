@@ -337,7 +337,7 @@
     "category": "docs",
     "description": "Operating mode codes (field 7e51) are stored in the repository",
     "steps": [
-      "Create docs/operating-modes.json: a list of 38 objects {code, name, en, nl}. Source of code and name: the owner's mapping found 2026-10-07 (the list starts at SENSORTEST = 85; earlier entries were not provided). en and nl are our own translation: there is no source for them",
+      "Create docs/operating-modes.json: a list of 38 objects {code, name, en, nl}. Source of code and name: the operating mode table in app.js of the Xtend web interface, provided by the owner 2026-10-07; these 38 entries are the complete table. en and nl are our own translation: there is no source for them",
       "Rows as code name | en | nl: 85 sensortest | Sensor test | Sensortest; 86 commissioning | Commissioning | Inbedrijfstelling; 87 crankheating | Crankcase heating | Carterverwarming; 88 commissioning_waiting | Commissioning, waiting | Inbedrijfstelling, wachten; 170 service | Service | Service; 171 heatpump_selftest | Heat pump self-test | Zelftest warmtepomp; 204 dhw | Domestic hot water | Tapwater; 51 dhw_int | Domestic hot water, internal | Tapwater, intern; 240 boiler_int | Boiler, internal | Cv-ketel, intern; 15 boiler_ext | Boiler, external | Cv-ketel, extern; 153 postrun_boiler | Boiler post-run | Nalooptijd cv-ketel",
       "More rows: 102 ch | Central heating | Cv-verwarming; 103 ch_wait | Central heating, waiting | Cv-verwarming, wachten; 104 defrosting | Defrosting | Ontdooien; 105 defrosting_wait | Defrosting, waiting | Ontdooien, wachten; 106 defrosting_wait_flow | Defrosting, waiting for flow | Ontdooien, wachten op debiet; 107 ch_blocked_by_sgready | Heating blocked by SG Ready | Verwarming geblokkeerd door SG Ready; 108 ch_wait_dhw_active | Heating waiting, DHW active | Verwarming wacht, tapwater actief; 109 ch_concrete_drying | Concrete floor drying | Vloerdroging; 0 opentherm | OpenTherm | OpenTherm; 255 heatup | Heating up | Opwarmen; 24 frost | Frost protection | Vorstbeveiliging",
       "More rows: 230 starting_ch | Starting heating | Verwarming starten; 231 postrun_ch | Heating post-run | Nalooptijd verwarming; 126 standby | Standby | Stand-by; 127 switched_off | Switched off | Uitgeschakeld; 37 ch_rf | Heating (RF) | Verwarming (RF); 205 dhw_hreco | DHW heat recovery | Tapwater warmteterugwinning; 206 dhw_legionella_prevention | Legionella prevention | Legionellapreventie; 207 dhw_wait | Domestic hot water, waiting | Tapwater, wachten",
@@ -418,11 +418,70 @@
     "passes": false
   },
   {
+    "category": "entities",
+    "description": "Field 6117 becomes the DHW state enum sensor",
+    "steps": [
+      "Depends on the enum support item (value_map in descriptions.py)",
+      "Source: table 6117 in docs/xtend-enums.json (confirmed by the owner 2026-10-07). Options are the lowercase names: dhw_idle, dhw_start, dhw_active, dhw_suspended, dhw_reclaim, dhw_postrun",
+      "In descriptions.py replace raw('6117', 'raw_6117') with: key 6117, translation_key dhw_state, device_class SensorDeviceClass.ENUM, value_map from the table, no entity_category, enabled by default. unique_id stays {host}_6117",
+      "Translations: name 'DHW state' / 'Tapwaterstatus'; states en: Idle, Starting, Active, Suspended, Reclaim, Post-run; nl: Rust, Starten, Actief, Onderbroken, Terugwinnen, Nalopen. The labels are our own translation",
+      "Verify with stats_values_standby: state 'dhw_idle'; with stats_values_n095: state 'dhw_active'; raw 2 and 32767 give 'unknown'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Binary sensors for status bits",
+    "steps": [
+      "Source: bit tables 77d2, 77c3 and f9f2 in docs/xtend-enums.json (confidence A: derived from app.js code order)",
+      "Add binary_sensor.py with an XtendBinarySensorDescription (key, bit, translation_key) that reads coordinator.data only; bit is on when (raw >> bit) & 1; 32767 or a missing field gives None",
+      "Entities: 77d2 bit 5 compressor_running (device_class RUNNING), 77d2 bit 1 ch_pump (RUNNING), 77d2 bit 0 dhw_pump (RUNNING), 77c3 bit 3 silent_mode, f9f2 bit 7 heat_demand_heat_pump (HEAT), f9f2 bit 8 heat_demand_boiler (HEAT), f9f2 bit 14 defrost_active",
+      "Names en/nl: Compressor running / Compressor actief; CH pump / Cv-pomp; DHW pump / Tapwaterpomp; Silent mode / Stille modus; Heat demand heat pump / Warmtevraag warmtepomp; Heat demand boiler / Warmtevraag ketel; Defrost active / Ontdooien actief",
+      "Add Platform.BINARY_SENSOR to PLATFORMS in __init__.py; no extra fields in STATS_FIELDS are needed",
+      "Verify with stats_values_n095: compressor_running on, heat_demand_heat_pump on, heat_demand_boiler off; with stats_values: heat_demand_boiler on, compressor_running off; with stats_values_standby: compressor_running, silent_mode, heat_demand_heat_pump, heat_demand_boiler and defrost_active off, ch_pump on (77d2 = 17102 has bit 1 set in standby)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "entities",
+    "description": "Field 6101 gets unit liter",
+    "steps": [
+      "Source: app.js gives 6101 unit L with factor 0.01; the meaning is unknown (docs/stats-mapping.md)",
+      "In descriptions.py change the 6101 entry: factor 0.01, unit UnitOfVolume.LITERS, device_class VOLUME_STORAGE, stays diagnostic and disabled by default; translation_key and unique_id unchanged",
+      "Rename to 'Volume 6101 (raw)' / 'Volume 6101 (ruw)' in all three translation files",
+      "Verify with stats_values_n095: 70.79; with stats_values_standby: 80.13"
+    ],
+    "passes": false
+  },
+  {
+    "category": "research",
+    "description": "Fields 4133, 6578, 65d0 and 7fec are read once on the device",
+    "steps": [
+      "These fields have a table in docs/xtend-enums.json but are not polled yet",
+      "Run GET /api/stats/values?fields=4133,6578,65d0,7fec in standby and during a heat pump run; save the answers as tests/fixtures/stats_values_extra_<state>.json",
+      "Check: 4133 is 0 or 255 without a fault; 6578 is 1 while heating; 65d0 bit 0 is on while the compressor runs",
+      "Only when the values match: create prd items to add the fields to STATS_FIELDS with an enum sensor (4133, 6578, 7fec) or binary sensors (65d0)",
+      "Verify: the fixtures exist and the result is written in docs/stats-mapping.md"
+    ],
+    "passes": false
+  },
+  {
+    "category": "research",
+    "description": "Installer parameter specs from app.js are stored for phase 2",
+    "steps": [
+      "app.js contains specs for P000-P255: code, type (bool, int, option, bits), options, unit, scale, digits, default, min, max, category and role (0 USER, 1 SERVICE, 2 EXPERT; 3 is not shown to any of these roles)",
+      "app.js also shows POST /api/auth with body {code} that returns a role, and write blocks for the heating and cooling curves",
+      "Ask the owner for the app.js file again and store the specs as docs/parameters.json with a source line; do not store the vendor file itself",
+      "Verify: docs/parameters.json is valid JSON and every entry has code, type, min, max, default and role"
+    ],
+    "passes": false
+  },
+  {
     "category": "research",
     "description": "Derived states from the summary page are mapped to raw fields (not required for phase 1)",
     "steps": [
-      "The summary page shows states that are not a single stats field: Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby). Operating mode is solved: it is field 7e51 (see docs/operating-modes.json)",
-      "Candidate sources: 7e7a burner status, 77c3 status flags, 6117 (DHW group), f9f2 bivalent service flags",
+      "The summary page shows states that are not a single stats field: Silent mode (Off), Heat demand heat pump (Off), Heat demand boiler (Off), DHW State (Standby). Solved: Operating mode is field 7e51 (docs/operating-modes.json); DHW State is field 6117 (confirmed by the owner 2026-10-07, docs/xtend-enums.json)",
+      "Candidates from app.js (docs/xtend-enums.json, confidence A): Silent mode = 77c3 bit 3 SilentModeActive; Heat demand heat pump = f9f2 bit 7 HeatpumpRequested; Heat demand boiler = f9f2 bit 8 BoilerRequested",
       "Collect at least 10 captures of the full stats payload together with the summary page states, covering: standby, CH heating by heat pump, CH heating by boiler, DHW run, silent mode on",
       "Start the table with the three fixtures already in tests/fixtures: stats_values (7e51 206, 77c3 208, f9f2 265, 6117 3), stats_values_standby (page: Standby, heat demand off, DHW Standby; 7e51 126, 77c3 0, f9f2 8, 6117 0), stats_values_n095 (heat pump 5000 W, DHW setpoint 65 °C; 7e51 206, 77c3 194, f9f2 136, 6117 3)",
       "Record each capture as a row in docs/derived-states.md: timestamp, page states, values of 7e51, 7e7a, 77c3, 6117, f9f2",
