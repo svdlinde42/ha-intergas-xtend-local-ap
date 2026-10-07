@@ -60,7 +60,7 @@
       "Do not apply scaling or sentinel handling in api.py; that belongs to the sensor layer",
       "Verify: parsing the fixture returns a dict with 32 keys and stats['47e0'] == 'V1.20-'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "tests",

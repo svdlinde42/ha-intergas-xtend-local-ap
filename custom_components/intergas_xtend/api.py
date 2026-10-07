@@ -81,7 +81,20 @@ class XtendApi:
         """Parse the response body into the ``stats`` dict.
 
         Response shape (captured 2026-10-06): ``{"stats": {"<hex id>": <int | str>}}``.
-        Strict validation of the body (JSON errors, missing ``stats`` key) is the
-        next prd item and not implemented yet.
+        Anything else raises ``XtendResponseError``: a body that is not JSON, a
+        top-level value that is not an object, or a missing or non-object
+        ``stats`` key. The inner dict is returned unchanged; no scaling, no
+        sentinel handling.
         """
-        return json.loads(body)["stats"]
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError as err:
+            raise XtendResponseError(f"Response is not valid JSON: {err}") from err
+        if not isinstance(payload, dict):
+            raise XtendResponseError(
+                f"Expected a JSON object, got {type(payload).__name__}"
+            )
+        stats = payload.get("stats")
+        if not isinstance(stats, dict):
+            raise XtendResponseError("Response has no 'stats' object")
+        return stats
