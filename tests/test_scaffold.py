@@ -11,10 +11,19 @@ from custom_components.intergas_xtend.const import (
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
+    STATS_FIELDS,
+    STATS_PATH,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
 INTEGRATION = ROOT / "custom_components" / "intergas_xtend"
+
+# Order as listed in plans/prd.json (api item), captured from the device 2026-10-06.
+EXPECTED_STATS_FIELDS = (
+    "7940,79b3,7921,7e2c,77c3,7e51,77d2,f9f2,7ed3,629c,6280,621d,62ed,503e,5088,"
+    "5077,5041,50f2,62d1,620f,6206,8439,47e0,7e7a,7774,77de,6115,61ba,61eb,610b,"
+    "6101,6117"
+).split(",")
 
 
 def test_manifest_is_valid_and_matches_domain() -> None:
@@ -39,6 +48,20 @@ def test_scan_interval_constants() -> None:
     assert DEFAULT_HOST == "10.20.30.1"
     assert MIN_SCAN_INTERVAL <= DEFAULT_SCAN_INTERVAL <= MAX_SCAN_INTERVAL
     assert (MIN_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, MAX_SCAN_INTERVAL) == (5, 10, 60)
+
+
+def test_stats_fields_are_32_unique_ids_in_order() -> None:
+    assert STATS_PATH == "/api/stats/values"
+    assert len(STATS_FIELDS) == 32
+    assert len(set(STATS_FIELDS)) == 32
+    assert list(STATS_FIELDS) == EXPECTED_STATS_FIELDS
+    assert all(len(f) == 4 and int(f, 16) >= 0 for f in STATS_FIELDS)
+
+
+def test_stats_fields_are_documented_in_mapping() -> None:
+    mapping = (ROOT / "docs" / "stats-mapping.md").read_text(encoding="utf-8")
+    missing = [f for f in STATS_FIELDS if f not in mapping]
+    assert missing == []
 
 
 def test_validate_workflow_has_three_jobs() -> None:

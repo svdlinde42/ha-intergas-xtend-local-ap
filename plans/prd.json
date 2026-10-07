@@ -35,7 +35,7 @@
       "Add a comment stating the source: docs/stats-mapping.md and a capture from the device on 2026-10-06",
       "Verify: len(STATS_FIELDS) == 32 and no duplicates"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "api",
