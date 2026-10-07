@@ -73,7 +73,7 @@
       "Add conftest fixtures 'stats_payload', 'stats_payload_standby' and 'stats_payload_n095' that load these files",
       "Verify: pytest --collect-only runs without import errors"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "tests",
