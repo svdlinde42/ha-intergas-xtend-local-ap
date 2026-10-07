@@ -35,6 +35,13 @@
       }
     }
   },
+  "entity": {
+    "button": {
+      "poll_now": {
+        "name": "Nu pollen"
+      }
+    }
+  },
   "issues": {
     "ap_unreachable": {
       "title": "Intergas Xtend op {host} is onbereikbaar",

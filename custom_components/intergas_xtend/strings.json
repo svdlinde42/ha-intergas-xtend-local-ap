@@ -35,6 +35,13 @@
       }
     }
   },
+  "entity": {
+    "button": {
+      "poll_now": {
+        "name": "Poll now"
+      }
+    }
+  },
   "issues": {
     "ap_unreachable": {
       "title": "Intergas Xtend at {host} is unreachable",

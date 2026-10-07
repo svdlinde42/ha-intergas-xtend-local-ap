@@ -11,7 +11,9 @@ re-enable it on the device. So after BACKOFF_START_FAILURES consecutive
 failures the coordinator doubles its interval per failure up to
 BACKOFF_MAX_SECONDS, and one successful poll restores the configured interval.
 When the back-off starts the coordinator also raises a repairs issue with the
-recovery steps; the next successful poll deletes it.
+recovery steps; the next successful poll deletes it. Only scheduled polls
+count as failures: a manual poll (the "Poll now" button or the
+``homeassistant.update_entity`` service) that fails keeps the current interval.
 
 This module must stay free of imports from __init__.py to avoid an import cycle.
 """
@@ -82,8 +84,11 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
         # The interval the user configured; kept separately so the back-off
         # logic can restore it after a successful poll.
         self.scan_interval = scan_interval_from_entry(entry)
-        # Consecutive failed polls; 0 after every successful poll.
+        # Consecutive failed scheduled polls; 0 after every successful poll.
         self.failures = 0
+        # True while the poll in progress was started by the scheduler, False
+        # for a manual poll. Set by _async_refresh, read by _register_failure.
+        self._scheduled_poll = False
         super().__init__(
             hass,
             _LOGGER,
@@ -101,6 +106,27 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
     def backing_off(self) -> bool:
         """True while the poll interval is stretched because the device is gone."""
         return self.failures >= BACKOFF_START_FAILURES
+
+    async def _async_refresh(
+        self,
+        log_failures: bool = True,
+        raise_on_auth_failed: bool = False,
+        scheduled: bool = False,
+        raise_on_entry_error: bool = False,
+    ) -> None:
+        """Remember whether this poll was scheduled before running it.
+
+        The base class is the only place that knows the difference: the
+        scheduler calls it with ``scheduled=True``, ``async_refresh`` and
+        ``async_request_refresh`` (button, update_entity service) do not.
+        """
+        self._scheduled_poll = scheduled
+        await super()._async_refresh(
+            log_failures=log_failures,
+            raise_on_auth_failed=raise_on_auth_failed,
+            scheduled=scheduled,
+            raise_on_entry_error=raise_on_entry_error,
+        )
 
     async def _async_update_data(self) -> dict[str, int | str]:
         """Fetch the status payload; any client error makes the update fail.
@@ -125,7 +151,18 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
         The base class already logs the first failure at error level and the
         rest at debug level; this method adds one warning when the back-off
         starts and nothing after that.
+
+        A failed manual poll is not counted: the user presses "Poll now" to
+        check whether the access point is back, and that check must not
+        stretch the interval further.
         """
+        if not self._scheduled_poll:
+            _LOGGER.debug(
+                "Manual poll of %s failed; keeping the interval at %d s",
+                self.api.host,
+                int(self.update_interval.total_seconds()),
+            )
+            return
         self.failures += 1
         if not self.backing_off:
             return
@@ -159,6 +196,9 @@ class XtendCoordinator(DataUpdateCoordinator[dict[str, int | str]]):
 
     def _register_success(self) -> None:
         """Reset the failure counter and restore the configured interval.
+
+        Manual and scheduled polls count alike here, so one successful press
+        of "Poll now" ends the back-off.
 
         The repairs issue is deleted on every success, not only when this
         coordinator started the back-off: after a reload during an outage a new

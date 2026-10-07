@@ -191,7 +191,7 @@
       "A failed manual poll keeps the current backoff interval and does not increase it",
       "Verify: after 5 failures and interval 80 s, a successful press makes update_interval 10 s again and the repairs issue disappears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "coordinator",

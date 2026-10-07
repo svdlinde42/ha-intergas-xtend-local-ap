@@ -138,6 +138,16 @@ def test_strings_json_has_repairs_issue_texts() -> None:
         assert button in issue["description"]
 
 
+def test_strings_json_has_poll_now_button_name() -> None:
+    # The button item: EN name 'Poll now', NL name 'Nu pollen'.
+    strings = json.loads((INTEGRATION / "strings.json").read_text(encoding="utf-8"))
+    nl = json.loads(
+        (INTEGRATION / "translations" / "nl.json").read_text(encoding="utf-8")
+    )
+    assert strings["entity"]["button"]["poll_now"]["name"] == "Poll now"
+    assert nl["entity"]["button"]["poll_now"]["name"] == "Nu pollen"
+
+
 def _key_paths(node: object, prefix: str = "") -> set[str]:
     """Return every leaf key path of a nested dict, e.g. 'config.step.user.title'."""
     if not isinstance(node, dict):
